@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Kombuwaedu — ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ වේදිකාව</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--g:#C9A84C;--gd:#7A5A10;--gl:#F0D98A;--gb:rgba(201,168,76,0.12);--gbr:rgba(201,168,76,0.28);--d:#0B1220;--d2:#131C2E;--d3:#1A2B42;--sf:#1F2D45;--sf2:#243450;--bd:rgba(255,255,255,0.08);--tx:#EEF2FA;--mu:#7A8FAA;--ac:#4F7FE8;--ac2:#2EC4B6;--ok:#3DAF72;--dn:#E25C5C;--wn:#E8A020;--r:12px;--rs:7px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Noto Sans Sinhala","DM Sans",sans-serif;background:var(--d);color:var(--tx);font-size:13px;line-height:1.6;overflow-x:hidden;}
+::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--d);}::-webkit-scrollbar-thumb{background:var(--sf2);border-radius:3px;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(11,18,32,0.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--gbr);display:flex;align-items:center;padding:0 1.5rem;height:58px;gap:0;}
+.logo{display:flex;align-items:center;gap:8px;cursor:pointer;margin-right:1.25rem;flex-shrink:0;}
+.lb{width:32px;height:32px;border-radius:7px;background:linear-gradient(135deg,var(--g),var(--gd));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;}
+.lt{font-size:17px;font-weight:700;color:var(--g);}
+.nav-links{display:flex;gap:0;flex:1;overflow-x:auto;}
+.na{padding:0 10px;height:58px;display:flex;align-items:center;font-size:11.5px;color:var(--mu);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.na:hover{color:var(--tx);}
+.na.active{color:var(--tx);border-bottom-color:var(--g);}
+.nav-right{display:flex;align-items:center;gap:.5rem;margin-left:auto;flex-shrink:0;}
+.user-pill{font-size:11px;color:var(--mu);background:var(--sf);border:1px solid var(--bd);padding:4px 11px;border-radius:100px;white-space:nowrap;}
+.page{display:none;padding-top:58px;min-height:100vh;}
+.page.active{display:block;}
+.btn{padding:8px 17px;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .18s;white-space:nowrap;}
+.btn-g{background:linear-gradient(135deg,var(--g),var(--gd));color:#fff;}
+.btn-g:hover{opacity:.9;}
+.btn-o{background:transparent;border:1px solid rgba(255,255,255,0.14);color:var(--tx);}
+.btn-o:hover{border-color:var(--g);color:var(--g);}
+.btn-lg{padding:12px 28px;font-size:14px;border-radius:10px;}
+.bdg{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;font-size:10px;font-weight:700;white-space:nowrap;}
+.b-ok{background:rgba(61,175,114,0.15);color:var(--ok);border:1px solid rgba(61,175,114,0.25);}
+.b-dn{background:rgba(226,92,92,0.12);color:var(--dn);border:1px solid rgba(226,92,92,0.22);}
+.b-wn{background:rgba(232,160,32,0.12);color:var(--wn);border:1px solid rgba(232,160,32,0.2);}
+.b-ac{background:rgba(79,127,232,0.12);color:var(--ac);border:1px solid rgba(79,127,232,0.22);}
+.b-srp{background:linear-gradient(135deg,rgba(201,168,76,0.2),rgba(201,168,76,0.06));color:var(--g);border:1px solid var(--g);padding:3px 10px;}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);}
+.mo{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;padding:1rem;}
+.mo.open{display:flex;}
+.md{background:var(--d2);border:1px solid rgba(255,255,255,0.1);border-radius:var(--r);padding:1.5rem;width:100%;max-width:480px;position:relative;max-height:90vh;overflow-y:auto;}
+.md-x{position:absolute;top:.85rem;right:.85rem;background:none;border:none;color:var(--mu);font-size:17px;cursor:pointer;}
+.fi{width:100%;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 11px;font-size:12.5px;color:var(--tx);font-family:inherit;outline:none;}
+.fi:focus{border-color:var(--g);}
+select.fi option{background:var(--d2);}
+#toast{position:fixed;bottom:1.25rem;right:1.25rem;background:var(--sf);border:1px solid var(--gbr);color:var(--g);padding:10px 16px;border-radius:var(--rs);font-size:11.5px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;}
+.hero{position:relative;overflow:hidden;min-height:calc(100vh - 58px);display:flex;align-items:center;justify-content:center;text-align:center;padding:3rem 2rem;}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 75% 55% at 50% 0%,rgba(79,127,232,0.09),transparent 68%),radial-gradient(ellipse 45% 35% at 85% 85%,rgba(201,168,76,0.06),transparent 65%);}
+.hero-grid{position:absolute;inset:0;opacity:.03;background-image:linear-gradient(var(--mu) 1px,transparent 1px),linear-gradient(90deg,var(--mu) 1px,transparent 1px);background-size:56px 56px;}
+.hero-content{position:relative;z-index:1;max-width:740px;}
+.hbadge{display:inline-flex;align-items:center;gap:6px;background:var(--gb);border:1px solid var(--gbr);border-radius:100px;padding:5px 14px;font-size:11px;color:var(--g);margin-bottom:1.5rem;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:pulse 2s infinite;display:inline-block;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.htitle{font-size:clamp(1.7rem,4vw,2.8rem);font-weight:700;line-height:1.3;margin-bottom:1.1rem;}
+.hgold{color:var(--g);}
+.hsub{font-size:13.5px;color:var(--mu);line-height:1.9;max-width:520px;margin:0 auto 2rem;font-weight:300;}
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,0.05);border-top:1px solid rgba(255,255,255,0.05);}
+.stat{background:var(--d);padding:1.6rem .75rem;text-align:center;}
+.stn{font-size:1.8rem;font-weight:700;color:var(--g);}
+.stl{font-size:11px;color:var(--mu);margin-top:2px;}
+.feat-sec{padding:3rem 2rem;max-width:1100px;margin:0 auto;}
+.sec-tag{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--g);margin-bottom:.6rem;}
+.sec-title{font-size:clamp(1.35rem,2.5vw,1.9rem);font-weight:700;margin-bottom:.6rem;line-height:1.3;}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.fc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:1.35rem;transition:border-color .2s,transform .2s;}
+.fc:hover{border-color:var(--gbr);transform:translateY(-2px);}
+.fci{width:40px;height:40px;border-radius:9px;margin-bottom:.8rem;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.fc h3{font-size:13px;font-weight:600;margin-bottom:.35rem;}
+.fc p{font-size:11.5px;color:var(--mu);line-height:1.7;}
+.streams-sec{background:var(--d2);border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);padding:2.75rem 2rem;text-align:center;}
+.sp-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:1.1rem;}
+.sp{border-radius:100px;padding:8px 20px;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid;transition:opacity .2s;}
+.sp:hover{opacity:.8;}
+.reg-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+.stream-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.55rem;margin:.5rem 0 .85rem;}
+.sc{border:1.5px solid var(--bd);border-radius:var(--rs);padding:.6rem .4rem;text-align:center;cursor:pointer;transition:all .18s;font-size:11px;line-height:1.4;}
+.sc:hover{border-color:var(--g);}
+.sc.sel{border-color:var(--g);background:var(--gb);}
+.sci{font-size:22px;display:block;margin-bottom:4px;}
+.dash{padding:1.5rem 2rem;}
+.grade-bar{display:flex;gap:6px;}
+.gtab{padding:6px 18px;border-radius:100px;font-size:12px;font-weight:600;background:var(--sf);border:1px solid var(--bd);color:var(--mu);cursor:pointer;transition:all .18s;font-family:inherit;}
+.gtab.on{background:var(--g);border-color:var(--g);color:#fff;}
+.subj-block{margin-bottom:2rem;}
+.subj-hdr{display:flex;align-items:center;gap:9px;margin-bottom:.75rem;padding-bottom:.55rem;border-bottom:1px solid var(--bd);}
+.sdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.papers-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:.85rem;}
+.pc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .2s;position:relative;}
+.pc:hover{border-color:rgba(201,168,76,0.4);transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,0.28);}
+.pc.srp{border-top:3px solid var(--g);}
+.pc.done{opacity:.72;}
+.pthumb{height:70px;display:flex;align-items:center;justify-content:center;font-size:28px;position:relative;}
+.pbadge{position:absolute;top:6px;right:6px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;}
+.pbody{padding:.75rem .9rem;}
+.psub{font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g);margin-bottom:.2rem;}
+.pname{font-size:12px;font-weight:600;margin-bottom:.3rem;line-height:1.4;}
+.pmeta{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;margin-top:.4rem;}
+.pmeta span{font-size:10px;color:var(--mu);}
+.tc{background:rgba(226,92,92,0.1);border:1px solid rgba(226,92,92,0.2);border-radius:4px;padding:1px 6px;font-size:9.5px;color:var(--dn);}
+.sc2{background:rgba(61,175,114,0.1);border:1px solid rgba(61,175,114,0.2);border-radius:4px;padding:1px 6px;font-size:9.5px;color:var(--ok);}
+.srp-highlight{background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.03));border:1px solid rgba(201,168,76,0.22);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem;}
+.exhdr{background:var(--d2);border-bottom:1px solid var(--bd);padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;}
+.exhdr.srp-mode{border-bottom:3px solid var(--g);}
+.ex-info h3{font-size:13.5px;font-weight:700;margin-bottom:2px;}
+.ex-info p{font-size:10.5px;color:var(--mu);}
+.tblk{display:flex;gap:4px;}
+.tb{background:var(--d);border:1px solid var(--bd);border-radius:6px;padding:4px 10px;text-align:center;min-width:38px;}
+.tbn{font-size:19px;font-weight:700;color:var(--g);line-height:1.1;}
+.tbl{font-size:8px;color:var(--mu);text-transform:uppercase;letter-spacing:.8px;}
+.tb.urgent .tbn{color:var(--dn);}
+.srp-strip{background:linear-gradient(135deg,rgba(201,168,76,0.14),rgba(201,168,76,0.04));border-bottom:1px solid rgba(201,168,76,0.25);padding:.55rem 1.5rem;font-size:11px;color:var(--g);font-weight:700;display:flex;align-items:center;gap:.6rem;}
+.exprog{padding:.65rem 1.5rem;background:var(--d2);border-bottom:1px solid rgba(255,255,255,0.04);}
+.pbar{height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin-bottom:.3rem;}
+.pfill{height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:2px;transition:width .3s;}
+.ptxt{font-size:10px;color:var(--mu);display:flex;justify-content:space-between;}
+.qnav{display:flex;gap:3px;flex-wrap:wrap;padding:.65rem 1.5rem;background:var(--d2);border-bottom:1px solid rgba(255,255,255,0.04);}
+.qnb{width:28px;height:28px;border-radius:5px;border:1px solid var(--bd);background:var(--sf);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--tx);font-family:inherit;}
+.qnb.ans{background:rgba(79,127,232,0.15);border-color:rgba(79,127,232,0.4);color:var(--ac);}
+.qnb.cur{background:var(--g);border-color:var(--g);color:#fff;}
+.exbody{padding:1.25rem 1.5rem;max-width:740px;}
+.qcard{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:1.1rem 1.25rem;margin-bottom:.9rem;}
+.qnum{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin-bottom:.45rem;}
+.qtxt{font-size:14px;line-height:1.85;margin-bottom:.85rem;}
+.qopts{display:flex;flex-direction:column;gap:6px;}
+.qo{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;font-size:13px;transition:all .18s;background:var(--d2);}
+.qo:hover:not(.lk){border-color:rgba(201,168,76,0.4);background:var(--gb);}
+.qo.sel{border-color:var(--ac);background:rgba(79,127,232,0.1);}
+.qo.cor{border-color:var(--ok);background:rgba(61,175,114,0.09);}
+.qo.wr{border-color:var(--dn);background:rgba(226,92,92,0.07);}
+.qo.lk{cursor:default;}
+.ol{width:23px;height:23px;border-radius:5px;background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0;}
+.exftr{padding:.9rem 1.5rem;background:var(--d2);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;}
+.sub-btn{background:linear-gradient(135deg,var(--g),var(--gd));color:#fff;border:none;padding:10px 24px;border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s;}
+.sub-btn:hover{opacity:.9;}
+.res-wrap{padding:1.75rem 2rem;}
+.res-hero{background:var(--d2);border:1px solid var(--bd);border-radius:var(--r);padding:1.75rem;margin-bottom:1.1rem;text-align:center;}
+.res-score{font-size:3.4rem;font-weight:700;color:var(--g);line-height:1;}
+.res-lbl{font-size:12.5px;color:var(--mu);margin-top:.35rem;}
+.res-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem;margin-top:1.15rem;}
+.rs{background:var(--sf);border-radius:var(--rs);padding:.7rem .5rem;text-align:center;}
+.rsn{font-size:1.25rem;font-weight:700;margin-bottom:2px;}
+.rsl{font-size:9.5px;color:var(--mu);}
+.ms-notice{background:rgba(232,160,32,0.08);border:1px solid rgba(232,160,32,0.22);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.1rem;display:flex;align-items:flex-start;gap:.8rem;}
+.ms-wrap{padding:1.75rem 2rem;}
+.ms-filter{display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:1.25rem;}
+.ms-filter select{width:auto;padding:6px 12px;font-size:12px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;outline:none;}
+.ms-filter select:focus{border-color:var(--g);}
+.ms-filter select option{background:var(--d2);}
+.mscard{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:1rem 1.15rem;margin-bottom:.65rem;}
+.ms-qhdr{display:flex;align-items:flex-start;justify-content:space-between;gap:.65rem;margin-bottom:.55rem;}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:5px;font-size:12.5px;margin-bottom:3px;}
+.ms-cor{background:rgba(61,175,114,0.08);border:1px solid rgba(61,175,114,0.22);}
+.ms-neu{background:rgba(255,255,255,0.02);border:1px solid transparent;}
+.lb-wrap{padding:1.75rem 2rem;max-width:880px;margin:0 auto;}
+.lb-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.35rem;flex-wrap:wrap;gap:.75rem;}
+.lb-filters{display:flex;gap:.55rem;flex-wrap:wrap;}
+.lb-filters select{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:6px 11px;font-size:11.5px;color:var(--tx);font-family:inherit;outline:none;}
+.lb-filters select option{background:var(--d2);}
+.my-rank{background:var(--d2);border:1px solid var(--gbr);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;}
+.my-rank-badge{width:50px;height:50px;border-radius:50%;background:var(--gb);border:2px solid var(--gbr);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:var(--g);flex-shrink:0;}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.85rem;margin-bottom:1.85rem;align-items:end;}
+.pi{text-align:center;}
+.pc2{border-radius:var(--r) var(--r) 0 0;padding:1rem .85rem .85rem;border:1px solid var(--bd);border-bottom:none;}
+.pav{width:46px;height:46px;border-radius:50%;margin:0 auto 7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;}
+.pn{font-size:12px;font-weight:600;margin-bottom:3px;}
+.psc{font-size:10px;color:var(--mu);}
+.pr{font-size:1.7rem;font-weight:700;}
+.pb2{height:32px;display:flex;align-items:center;justify-content:center;font-size:18px;border-radius:0 0 var(--r) var(--r);}
+.lb-rows{display:flex;flex-direction:column;gap:5px;}
+.lb-row{display:flex;align-items:center;gap:.8rem;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:9px .95rem;}
+.lb-row.me{border-color:var(--gbr);background:var(--gb);}
+.lb-r{width:22px;text-align:center;font-size:11px;font-weight:700;color:var(--mu);}
+.lb-n{flex:1;font-size:12px;font-weight:500;}
+.lb-d{font-size:10px;color:var(--mu);}
+.lb-s{font-size:13.5px;font-weight:700;color:var(--g);}
+.lb-t{font-size:10px;color:var(--mu);}
+.lb-ch{font-size:11px;}
+.lb-ch.up{color:var(--ok)}.lb-ch.dn{color:var(--dn);}
+.qa-layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 58px);}
+.qa-side{background:var(--d2);border-right:1px solid var(--bd);padding:1.25rem;}
+.sb-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu);margin-bottom:.55rem;margin-top:1.1rem;}
+.sb-lbl:first-child{margin-top:0;}
+.spill{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:var(--rs);cursor:pointer;font-size:11.5px;transition:all .15s;margin-bottom:2px;}
+.spill:hover{background:var(--sf);}
+.spill.on{background:var(--gb);color:var(--g);}
+.sdot2{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.qa-main{padding:1.5rem 1.75rem;}
+.qa-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;}
+.thread{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:.95rem 1.1rem;margin-bottom:.6rem;cursor:pointer;transition:all .2s;}
+.thread:hover{border-color:rgba(79,127,232,0.35);background:var(--sf2);}
+.th-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;}
+.th-subj{font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.th-ti{font-size:13px;font-weight:500;line-height:1.55;}
+.th-meta{display:flex;align-items:center;gap:.95rem;margin-top:7px;}
+.th-meta span{font-size:11px;color:var(--mu);}
+.av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.td-wrap{padding:1.5rem 2rem;min-height:calc(100vh - 58px);}
+.back-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--mu);cursor:pointer;background:none;border:none;font-family:inherit;margin-bottom:1.1rem;}
+.back-btn:hover{color:var(--tx);}
+.td-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:1.35rem;max-width:760px;margin-bottom:.85rem;}
+.ans-card{background:var(--d2);border:1px solid var(--bd);border-radius:var(--r);padding:1.15rem;max-width:760px;margin-bottom:.6rem;}
+.ans-card.ver{border-color:rgba(61,175,114,0.3);background:rgba(61,175,114,0.035);}
+.ver-lbl{font-size:9.5px;font-weight:700;color:var(--ok);letter-spacing:1px;text-transform:uppercase;margin-bottom:.55rem;display:flex;align-items:center;gap:4px;}
+.auth-row{display:flex;align-items:center;gap:9px;margin-bottom:.55rem;}
+.auth-n{font-size:12px;font-weight:600;}
+.auth-r{font-size:10px;color:var(--mu);}
+.body-txt{font-size:13px;line-height:1.85;}
+.reply-box{max-width:760px;margin-top:1.25rem;}
+.reply-inp{width:100%;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 12px;font-size:13px;color:var(--tx);font-family:inherit;outline:none;resize:vertical;}
+.reply-inp:focus{border-color:var(--g);}
+footer{background:var(--d2);border-top:1px solid var(--bd);padding:2rem;text-align:center;}
+@media(max-width:900px){
+  .na{padding:0 7px;font-size:11px;}
+  .feat-grid{grid-template-columns:1fr 1fr;}
+  .qa-layout{grid-template-columns:1fr;}
+  .qa-side{display:none;}
+  .papers-row{grid-template-columns:1fr 1fr;}
+  .stats-strip{grid-template-columns:1fr 1fr;}
+  .podium{grid-template-columns:1fr;}
+  .res-stats{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:560px){
+  .feat-grid,.papers-row{grid-template-columns:1fr;}
+  .reg-grid{grid-template-columns:1fr;}
+  .stream-grid{grid-template-columns:repeat(3,1fr);}
+}
+
+/* ══ PAST PAPERS ══ */
+.pp-wrap{padding:1.5rem 2rem;}
+.pp-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem;}
+.pp-filters{display:flex;gap:.55rem;flex-wrap:wrap;}
+.pp-filters select{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:6px 11px;font-size:11.5px;color:var(--tx);font-family:inherit;outline:none;}
+.pp-filters select option{background:var(--d2);}
+.pp-filters select:focus{border-color:var(--g);}
+.topic-section{margin-bottom:2.25rem;}
+.topic-hdr{display:flex;align-items:center;gap:10px;padding:.65rem 1rem;background:var(--d2);border:1px solid var(--bd);border-radius:var(--r) var(--r) 0 0;cursor:pointer;user-select:none;}
+.topic-hdr:hover{background:var(--sf);}
+.topic-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.topic-name{font-size:13px;font-weight:700;flex:1;}
+.topic-meta{font-size:10.5px;color:var(--mu);}
+.topic-chev{font-size:11px;color:var(--mu);transition:transform .2s;}
+.topic-chev.open{transform:rotate(180deg);}
+.topic-body{border:1px solid var(--bd);border-top:none;border-radius:0 0 var(--r) var(--r);background:var(--d);overflow:hidden;display:none;}
+.topic-body.open{display:block;}
+.year-row{display:flex;align-items:center;padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,0.04);gap:1rem;flex-wrap:wrap;}
+.year-row:last-child{border-bottom:none;}
+.yr-label{font-size:12px;font-weight:700;color:var(--g);width:44px;flex-shrink:0;}
+.yr-items{display:flex;gap:.55rem;flex-wrap:wrap;flex:1;}
+.pp-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--rs);font-size:11px;font-weight:600;cursor:pointer;border:1px solid;transition:all .18s;white-space:nowrap;}
+.pp-mcq{background:rgba(79,127,232,0.1);border-color:rgba(79,127,232,0.28);color:var(--ac);}
+.pp-mcq:hover{background:rgba(79,127,232,0.18);border-color:var(--ac);}
+.pp-essay{background:rgba(46,196,182,0.1);border-color:rgba(46,196,182,0.28);color:var(--ac2);}
+.pp-essay:hover{background:rgba(46,196,182,0.18);border-color:var(--ac2);}
+.pp-ans{background:rgba(61,175,114,0.1);border-color:rgba(61,175,114,0.28);color:var(--ok);}
+.pp-ans:hover{background:rgba(61,175,114,0.18);border-color:var(--ok);}
+.yr-marks{font-size:10px;color:var(--mu);margin-left:auto;white-space:nowrap;}
+/* MCQ viewer */
+.ppx-wrap{padding:1.5rem 2rem;max-width:780px;}
+.ppx-hdr{background:var(--d2);border:1px solid var(--bd);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.25rem;}
+.ppx-breadcrumb{font-size:10.5px;color:var(--mu);margin-bottom:.4rem;}
+.ppx-title{font-size:1.1rem;font-weight:700;margin-bottom:.25rem;}
+.ppx-meta{font-size:11px;color:var(--mu);display:flex;gap:1rem;flex-wrap:wrap;}
+.pp-qcard{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:1rem 1.15rem;margin-bottom:.75rem;}
+.pp-qnum{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin-bottom:.4rem;}
+.pp-qtxt{font-size:13.5px;line-height:1.82;margin-bottom:.8rem;}
+.pp-opts{display:flex;flex-direction:column;gap:5px;}
+.pp-opt{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;font-size:12.5px;transition:all .18s;background:var(--d2);}
+.pp-opt:hover:not(.pp-lk){border-color:rgba(201,168,76,0.35);background:var(--gb);}
+.pp-opt.pp-sel{border-color:var(--ac);background:rgba(79,127,232,0.1);}
+.pp-opt.pp-cor{border-color:var(--ok);background:rgba(61,175,114,0.09);}
+.pp-opt.pp-wr{border-color:var(--dn);background:rgba(226,92,92,0.07);}
+.pp-opt.pp-lk{cursor:default;}
+.pp-ol{width:22px;height:22px;border-radius:5px;background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+/* PDF viewer */
+.pdf-viewer{background:var(--d2);border:1px solid var(--bd);border-radius:var(--r);padding:2.5rem;text-align:center;min-height:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.85rem;}
+.pdf-icon{font-size:3.5rem;}
+.pdf-title{font-size:14px;font-weight:700;}
+.pdf-sub{font-size:12px;color:var(--mu);line-height:1.7;max-width:400px;}
+.pdf-actions{display:flex;gap:.65rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem;}
+/* Answer sheet viewer */
+.ans-sheet-view{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:1.25rem;}
+.ans-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.ans-table th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);border-bottom:1px solid var(--bd);}
+.ans-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.ans-table tr:last-child td{border-bottom:none;}
+.ans-table tr:hover td{background:rgba(255,255,255,0.02);}
+.ans-correct{color:var(--ok);font-weight:700;}
+.ans-mark{color:var(--ac);font-weight:600;}
+
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo" onclick="gp('home')"><div class="lb">K</div><span class="lt">Kombuwaedu</span></div>
+  <div class="nav-links">
+    <div class="na active" onclick="gp('home')" id="n-home">මුල් පිටුව</div>
+    <div class="na" onclick="reqAuth('dashboard')" id="n-dashboard">📋 ප්‍රශ්න පත්‍ර</div>
+    <div class="na" onclick="reqAuth('marking')" id="n-marking">📖 ලකුණු ක්‍රමය</div>
+    <div class="na" onclick="reqAuth('rankings')" id="n-rankings">🏆 ශ්‍රේණිගත</div>
+    <div class="na" onclick="reqAuth('qa')" id="n-qa">💬 ප්‍රශ්නෝත්තර</div>
+    <div class="na" onclick="reqAuth('pastpapers')" id="n-pastpapers">📚 Past Papers</div>
+  </div>
+  <div class="nav-right">
+    <span class="user-pill" id="user-pill" style="display:none"></span>
+    <button class="btn btn-o" id="login-btn" style="font-size:11px;padding:6px 14px;" onclick="om('reg')">ලියාපදිංචිය</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="page active" id="p-home">
+  <div class="hero"><div class="hero-bg"></div><div class="hero-grid"></div>
+    <div class="hero-content">
+      <div class="hbadge"><span class="dot"></span> ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ වේදිකාව — 2026</div>
+      <div class="htitle">ඔබේ <span class="hgold">අ/පෙළ</span> ජය ගන්න<br/>Daily MCQ · ⭐ SRP · ශ්‍රේණිගත</div>
+      <p class="hsub">Daily ප්‍ර 10 (10 මිනි) · SRP ප්‍ර 30 (30 මිනි) · ශ්‍රේණිය + ධාරාව paper access · Real-time ලකුණු · ලකුණු ක්‍රමය ඒ දිනෙ</p>
+      <div style="display:flex;gap:.65rem;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-g btn-lg" onclick="om('reg')">ලියාපදිංචිය</button>
+        <button class="btn btn-o btn-lg" onclick="demoLogin()">Demo — ඇතුල් වන්න</button>
+      </div>
+    </div>
+  </div>
+  <div class="stats-strip">
+    <div class="stat"><div class="stn">42K+</div><div class="stl">ක්‍රියාශීලී සිසුන්</div></div>
+    <div class="stat"><div class="stn">Daily</div><div class="stl">ප්‍ර 10 · 10 මිනිත්තු</div></div>
+    <div class="stat"><div class="stn">⭐ SRP</div><div class="stl">ප්‍ර 30 · 30 මිනිත්තු</div></div>
+    <div class="stat"><div class="stn">5</div><div class="stl">ධාරා · Grade 12 & 13</div></div>
+  </div>
+  <div class="feat-sec">
+    <div class="sec-tag">Platform Features</div>
+    <div class="sec-title">A සාමාර්ථ ලබා ගැනීමට ඔබට අවශ්‍ය සියල්ල</div>
+    <div class="feat-grid" style="margin-top:1.5rem;">
+      <div class="fc"><div class="fci" style="background:rgba(79,127,232,0.12)">📝</div><h3>දෛනික MCQ</h3><p>ප්‍ර 10, 10 මිනිත්තු timer. Real-time: ලකුණු පමණ. Correct answers ඒ දිනෙ upload කෙරේ.</p></div>
+      <div class="fc" style="border-top:3px solid var(--g)"><div class="fci" style="background:var(--gb)">⭐</div><h3>SRP — <span style="color:var(--g)">Weekly Special Ranking</span></h3><p>ප්‍ර 30, 30 මිනිත්තු. Island-wide ranking. System-wide specially highlighted. ලකුණු ක්‍රමය ඒ දිනෙ.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(61,175,114,0.12)">📖</div><h3>ලකුණු ක්‍රමය</h3><p>ප්‍රශ්නනය ශේෂ දිනෙ upload. Subject + Grade + Type filter. ඔබේ attempt + correct answers.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(232,160,32,0.12)">🏆</div><h3>Grade-wise Rankings</h3><p>Daily + SRP separate. Grade 12 / 13 separate. National + District rank.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(46,196,182,0.12)">🎓</div><h3>ශ්‍රේණිය Access</h3><p>Grade 12 → 12 & 13 papers. Grade 13 → 12 & 13 papers. Papers uploaded per grade separately.</p></div>
+      <div class="fc"><div class="fci" style="background:rgba(168,139,250,0.12)">💬</div><h3>Q&A Forum</h3><p>Photo questions. Verified teacher answers. Resolved/Pending. Subject filter.</p></div>
+    </div>
+  </div>
+  <div class="streams-sec">
+    <div class="sec-tag">Subject Streams</div>
+    <div class="sec-title">ධාරාව + ශ්‍රේණිය — ඔබේ subjects auto-filtered</div>
+    <div class="sp-row">
+      <div class="sp" style="background:rgba(79,127,232,0.1);border-color:rgba(79,127,232,0.3);color:#7aaef0" onclick="om('reg')">⚗️ Physical Science</div>
+      <div class="sp" style="background:rgba(61,175,114,0.1);border-color:rgba(61,175,114,0.3);color:#5dd9a0" onclick="om('reg')">🧬 Bio Science</div>
+      <div class="sp" style="background:var(--gb);border-color:var(--gbr);color:var(--g)" onclick="om('reg')">📊 Commerce</div>
+      <div class="sp" style="background:rgba(168,139,250,0.1);border-color:rgba(168,139,250,0.3);color:#c4b0fa" onclick="om('reg')">🎨 Arts</div>
+      <div class="sp" style="background:rgba(46,196,182,0.1);border-color:rgba(46,196,182,0.3);color:#5dd9cd" onclick="om('reg')">💻 Technology</div>
+    </div>
+  </div>
+  <div style="text-align:center;padding:3.5rem 2rem;">
+    <div class="sec-tag">Register Now</div>
+    <div class="sec-title" style="margin-bottom:.65rem">දූපතේ ඉහළම ස්ථානය ලබා ගැනීමට සූදානමිද?</div>
+    <p style="color:var(--mu);font-size:13px;margin-bottom:1.75rem;max-width:420px;margin-left:auto;margin-right:auto">ධාරාව + ශ්‍රේණිය select — ඔබේ subjects auto-filtered.</p>
+    <button class="btn btn-g btn-lg" onclick="om('reg')">ලියාපදිංචිය — Free</button>
+  </div>
+  <footer><div class="logo" style="justify-content:center;margin-bottom:.5rem;"><div class="lb">K</div><span class="lt">Kombuwaedu</span></div>
+    <p style="font-size:11px;color:var(--mu)">© 2026 Kombuwaedu.com · ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ, SRP, Q&A වේදිකාව</p></footer>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="p-dashboard">
+  <div class="dash">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem;">
+      <div><div style="font-size:1.3rem;font-weight:700;" id="dash-title">ප්‍රශ්න පත්‍ර</div>
+        <div style="font-size:11px;color:var(--mu);margin-top:3px;" id="dash-meta">—</div>
+      </div>
+      <div class="grade-bar">
+        <button class="gtab on" onclick="setGrade(12,this)" id="gtab12">12 ශ්‍රේණිය</button>
+        <button class="gtab" onclick="setGrade(13,this)" id="gtab13">13 ශ්‍රේණිය</button>
+      </div>
+    </div>
+    <div id="dash-content"></div>
+  </div>
+</div>
+
+<!-- EXAM -->
+<div class="page" id="p-exam">
+  <div class="exhdr" id="exhdr">
+    <div class="ex-info"><h3 id="ex-title">—</h3><p id="ex-meta">—</p></div>
+    <div class="tblk">
+      <div class="tb" id="tm-m"><div class="tbn" id="tm-mn">00</div><div class="tbl">මිනි</div></div>
+      <div class="tb" id="tm-s"><div class="tbn" id="tm-sn">00</div><div class="tbl">තත්</div></div>
+    </div>
+  </div>
+  <div id="srp-strip" style="display:none;" class="srp-strip">⭐ SRP — විශේෂ ශ්‍රේණිගත ප්‍රශ්න පත්‍රය · Island-wide ranking · ප්‍ර 30 · 30 මිනිත්තු · <span style="font-weight:400;opacity:.7">ලකුණු ක්‍රමය ඒ දිනෙ</span></div>
+  <div class="exprog">
+    <div class="pbar"><div class="pfill" id="prog" style="width:0%"></div></div>
+    <div class="ptxt"><span id="prog-txt">ප්‍රශ්නය 1</span><span id="ans-txt">0 පිළිතුරු</span></div>
+  </div>
+  <div class="qnav" id="q-nav"></div>
+  <div class="exbody" id="exam-body"></div>
+  <div class="exftr">
+    <div style="font-size:11.5px;color:var(--mu);" id="ftr-hint">ප්‍රශ්නවලට පිළිතුරු දෙන්න</div>
+    <button class="sub-btn" onclick="confirmSub()">ඉදිරිපත් කරන්න ✓</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="page" id="p-result"><div class="res-wrap"><div id="result-content" style="max-width:720px;margin:0 auto;"></div></div></div>
+
+<!-- MARKING SCHEME -->
+<div class="page" id="p-marking">
+  <div class="ms-wrap">
+    <div style="margin-bottom:1.1rem">
+      <div style="font-size:1.3rem;font-weight:700;margin-bottom:.25rem;">📖 ලකුණු ක්‍රමය</div>
+      <div style="font-size:11px;color:var(--mu);">ශේෂ දිනෙ upload · Subject · Grade · Paper Type filter</div>
+    </div>
+    <div class="ms-filter">
+      <select id="msf-stream" onchange="renderMS()"><option value="">ධාරාව — සියල්ල</option><option value="phy">⚗️ Physical Science</option><option value="bio">🧬 Bio Science</option><option value="com">📊 Commerce</option><option value="art">🎨 Arts</option><option value="tec">💻 Technology</option></select>
+      <select id="msf-subj" onchange="renderMS()"><option value="">විෂය — සියල්ල</option><option value="m">ඒකාබද්ධ ගණිතය</option><option value="ph">භෞතිකය</option><option value="ch">රසායනය</option><option value="bi">ජීව විද්‍යාව</option><option value="ac">ගිණුම්</option><option value="ec">ආර්ථිකය</option></select>
+      <select id="msf-grade" onchange="renderMS()"><option value="">ශ්‍රේණිය — සියල්ල</option><option value="12">12 ශ්‍රේණිය</option><option value="13">13 ශ්‍රේණිය</option></select>
+      <select id="msf-type" onchange="renderMS()"><option value="">වර්ගය — සියල්ල</option><option value="daily">📝 Daily MCQ</option><option value="srp">⭐ SRP</option></select>
+    </div>
+    <div id="ms-content"></div>
+  </div>
+</div>
+
+<!-- RANKINGS -->
+<div class="page" id="p-rankings">
+  <div class="lb-wrap">
+    <div class="lb-hdr">
+      <div><div style="font-size:1.3rem;font-weight:700;margin-bottom:3px;">🏆 ශ්‍රේණිගත කිරීම</div>
+        <div style="font-size:11px;color:var(--mu)">Paper type · Subject · Grade · District</div></div>
+      <div class="lb-filters">
+        <select id="rk-type" onchange="renderRank()"><option value="srp">⭐ SRP</option><option value="daily">📝 Daily MCQ</option></select>
+        <select id="rk-subj" onchange="renderRank()"><option value="m">ඒකාබද්ධ ගණිතය</option><option value="ph">භෞතිකය</option><option value="ch">රසායනය</option><option value="bi">ජීව</option><option value="ac">ගිණුම්</option><option value="ec">ආර්ථිකය</option></select>
+        <select id="rk-grade" onchange="renderRank()"><option value="12">12 ශ්‍රේණිය</option><option value="13">13 ශ්‍රේණිය</option></select>
+        <select id="rk-dist" onchange="renderRank()"><option value="">සියලු දිස්ත්‍රික්ක</option><option value="col">කොළඹ</option><option value="gam">ගම්පහ</option><option value="kan">මහනුවර</option><option value="gal">ගාල්ල</option></select>
+      </div>
+    </div>
+    <div id="my-rank-section"></div>
+    <div class="podium" id="podium-section"></div>
+    <div class="lb-rows" id="lb-rows"></div>
+  </div>
+</div>
+
+<!-- Q&A -->
+<div class="page" id="p-qa">
+  <div class="qa-layout">
+    <div class="qa-side">
+      <div class="sb-lbl">විෂය</div>
+      <div class="spill on" onclick="fqa(this,'all')"><span class="sdot2" style="background:var(--ac)"></span>සියලු</div>
+      <div class="spill" onclick="fqa(this,'m')"><span class="sdot2" style="background:var(--g)"></span>ගණිතය</div>
+      <div class="spill" onclick="fqa(this,'ph')"><span class="sdot2" style="background:var(--ac)"></span>භෞතිකය</div>
+      <div class="spill" onclick="fqa(this,'ch')"><span class="sdot2" style="background:var(--ac2)"></span>රසායනය</div>
+      <div class="spill" onclick="fqa(this,'bi')"><span class="sdot2" style="background:var(--ok)"></span>ජීව</div>
+      <div class="spill" onclick="fqa(this,'ac')"><span class="sdot2" style="background:#a78bfa"></span>ගිණුම්</div>
+      <div class="spill" onclick="fqa(this,'ec')"><span class="sdot2" style="background:#fb923c"></span>ආර්ථිකය</div>
+      <div class="sb-lbl">තත්ත්වය</div>
+      <div class="spill" onclick="fqa(this,'resolved')"><span style="width:7px;height:7px;background:var(--ok);border-radius:50%;flex-shrink:0"></span>විසඳිණ</div>
+      <div class="spill" onclick="fqa(this,'pending')"><span style="width:7px;height:7px;background:var(--wn);border-radius:50%;flex-shrink:0"></span>පොරොත්තු</div>
+    </div>
+    <div class="qa-main">
+      <div class="qa-top">
+        <div><div style="font-size:14px;font-weight:700;">සාකච්ඡා වේදිකාව</div><div style="font-size:11px;color:var(--mu);margin-top:2px">1,248 ප්‍රශ්න — මෙම මාසය</div></div>
+        <button class="btn btn-g" style="font-size:12px;" onclick="om('newq')">+ ප්‍රශ්නය</button>
+      </div>
+      <div id="qa-list"></div>
+    </div>
+  </div>
+</div>
+<div class="page" id="p-thread"><div class="td-wrap"><button class="back-btn" onclick="gp('qa')">← Forum</button><div id="td-content"></div></div></div>
+
+
+<!-- ═══ PAST PAPERS ═══ -->
+<div class="page" id="p-pastpapers">
+  <div class="pp-wrap">
+    <div class="pp-toolbar">
+      <div>
+        <div style="font-size:1.3rem;font-weight:700;margin-bottom:.2rem">📚 Past Papers</div>
+        <div style="font-size:11px;color:var(--mu)">Topic-wise restructured · MCQ + Essay · Marking Scheme · 2015–2024</div>
+      </div>
+      <div class="pp-filters">
+        <select id="ppf-stream" onchange="renderPP()">
+          <option value="">ධාරාව — සියල්ල</option>
+          <option value="phy">⚗️ Physical Science</option>
+          <option value="bio">🧬 Bio Science</option>
+          <option value="com">📊 Commerce</option>
+          <option value="art">🎨 Arts</option>
+          <option value="tec">💻 Technology</option>
+        </select>
+        <select id="ppf-subj" onchange="renderPP()">
+          <option value="">විෂය — සියල්ල</option>
+          <option value="m">ඒකාබද්ධ ගණිතය</option>
+          <option value="ph">භෞතිකය</option>
+          <option value="ch">රසායනය</option>
+          <option value="bi">ජීව විද්‍යාව</option>
+          <option value="ac">ගිණුම්</option>
+          <option value="ec">ආර්ථිකය</option>
+        </select>
+        <select id="ppf-grade" onchange="renderPP()">
+          <option value="">ශ්‍රේණිය — සියල්ල</option>
+          <option value="12">12 ශ්‍රේණිය</option>
+          <option value="13">13 ශ්‍රේණිය</option>
+        </select>
+        <select id="ppf-year" onchange="renderPP()">
+          <option value="">වර්ෂය — සියල්ල</option>
+          <option value="2024">2024</option><option value="2023">2023</option>
+          <option value="2022">2022</option><option value="2021">2021</option>
+          <option value="2020">2020</option><option value="2019">2019</option>
+          <option value="2018">2018</option><option value="2017">2017</option>
+          <option value="2016">2016</option><option value="2015">2015</option>
+        </select>
+      </div>
+    </div>
+    <div id="pp-content"></div>
+  </div>
+</div>
+
+<!-- MCQ VIEWER -->
+<div class="page" id="p-ppview">
+  <div class="ppx-wrap">
+    <button class="back-btn" onclick="gp('pastpapers')">← Past Papers</button>
+    <div id="ppview-content"></div>
+  </div>
+</div>
+
+<!-- PDF / ESSAY VIEWER -->
+<div class="page" id="p-pdfview">
+  <div class="ppx-wrap">
+    <button class="back-btn" onclick="gp('pastpapers')">← Past Papers</button>
+    <div id="pdfview-content"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="mo" id="mo-reg">
+  <div class="md">
+    <button class="md-x" onclick="cm('reg')">✕</button>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:.2rem;">ලියාපදිංචිය</div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:1rem;">ධාරාව + ශ්‍රේණිය → ඔබේ subjects auto-filtered</div>
+    <div class="reg-grid" style="margin-bottom:.65rem;">
+      <div><label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:3px">නම</label><input class="fi" id="reg-name" placeholder="ඔබේ නම"/></div>
+      <div><label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:3px">දු.ස. (+94)</label><input class="fi" placeholder="07X XXX XXXX"/></div>
+    </div>
+    <div style="margin-bottom:.65rem;">
+      <label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:.4rem;">ශ්‍රේණිය — Grade 12 & 13 papers access ඇත</label>
+      <div style="display:flex;gap:.5rem;">
+        <button class="btn btn-g" id="g12b" onclick="rGrade=12;this.className='btn btn-g';document.getElementById('g13b').className='btn btn-o'" style="flex:1">12 ශ්‍රේණිය</button>
+        <button class="btn btn-o" id="g13b" onclick="rGrade=13;this.className='btn btn-g';document.getElementById('g12b').className='btn btn-o'" style="flex:1">13 ශ්‍රේණිය</button>
+      </div>
+    </div>
+    <div style="margin-bottom:.65rem;">
+      <label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:.4rem;">ධාරාව — ඔබේ stream subjects පමණ පෙනේ</label>
+      <div class="stream-grid" id="stream-cards">
+        <div class="sc" onclick="rStream='phy';selSC(this)"><span class="sci">⚗️</span>Physical</div>
+        <div class="sc" onclick="rStream='bio';selSC(this)"><span class="sci">🧬</span>Bio</div>
+        <div class="sc" onclick="rStream='com';selSC(this)"><span class="sci">📊</span>Commerce</div>
+        <div class="sc" onclick="rStream='art';selSC(this)"><span class="sci">🎨</span>Arts</div>
+        <div class="sc" onclick="rStream='tec';selSC(this)"><span class="sci">💻</span>Tech</div>
+      </div>
+    </div>
+    <div class="reg-grid" style="margin-bottom:.65rem;">
+      <div><label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:3px">දිස්ත්‍රික්කය</label>
+        <select class="fi" id="reg-dist"><option>කොළඹ</option><option>ගම්පහ</option><option>කළුතර</option><option>මහනුවර</option><option>ගාල්ල</option><option>මාතර</option><option>රත්නපුර</option><option>කුරුණෑගල</option><option>ජාෆ්නා</option><option>හම්බන්</option></select></div>
+      <div><label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:3px">විභාග වර්ෂය</label><select class="fi"><option>2026</option><option>2027</option></select></div>
+    </div>
+    <div style="margin-bottom:.85rem;"><label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:3px">පාසල</label><input class="fi" placeholder="ඔබේ පාසල"/></div>
+    <button class="btn btn-g" style="width:100%;padding:11px;font-size:13px;" onclick="doRegister()">ලියාපදිංචිය ✓</button>
+  </div>
+</div>
+<div class="mo" id="mo-confirm">
+  <div class="md" style="text-align:center;max-width:380px;">
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:.4rem;">ඉදිරිපත් කරන්නද?</div>
+    <div style="font-size:12px;color:var(--mu);margin-bottom:1.25rem;line-height:1.7;" id="confirm-msg">ඉදිරිපත් කළ පසු වෙනස් කළ නොහැකිය.</div>
+    <div style="display:flex;gap:.65rem;justify-content:center;">
+      <button class="btn btn-o" onclick="cm('confirm')">නැත</button>
+      <button class="btn btn-g" onclick="doSubmit()">ඔව් — ඉදිරිපත් කරන්න</button>
+    </div>
+  </div>
+</div>
+<div class="mo" id="mo-timeup">
+  <div class="md" style="text-align:center;max-width:340px;">
+    <div style="font-size:2.8rem;margin-bottom:.5rem;">⏰</div>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:.4rem;">කාලය ඉකුත් විය!</div>
+    <div style="font-size:12px;color:var(--mu);margin-bottom:1.1rem;">ස්වයංක්‍රීයව ඉදිරිපත් කෙරිණ.</div>
+    <button class="btn btn-g" onclick="cm('timeup');doSubmit()">ප්‍රතිඵල බලන්න</button>
+  </div>
+</div>
+<div class="mo" id="mo-newq">
+  <div class="md">
+    <button class="md-x" onclick="cm('newq')">✕</button>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:.25rem;">ප්‍රශ්නයක් අසන්න</div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:1rem;">ඡායාරූප 3 · Markdown</div>
+    <div style="margin-bottom:.65rem;"><label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:4px">විෂය</label>
+      <select class="fi"><option>ඒකාබද්ධ ගණිතය</option><option>භෞතිකය</option><option>රසායනය</option><option>ජීව</option><option>ගිණුම්</option><option>ආර්ථිකය</option></select></div>
+    <div style="margin-bottom:.65rem;"><label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:4px">ප්‍රශ්නය</label>
+      <textarea class="fi" rows="5" style="resize:vertical" placeholder="ඔබේ සැකය..."></textarea></div>
+    <div style="margin-bottom:.85rem;"><label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:4px">ඡායාරූප (max 3)</label>
+      <div style="border:1.5px dashed var(--bd);border-radius:var(--rs);padding:1rem;text-align:center;cursor:pointer;font-size:12px;color:var(--mu)">📎 Click / drag</div></div>
+    <button class="btn btn-g" style="width:100%;padding:10px;" onclick="cm('newq');showToast('ප්‍රශ්නය සාර්ථකව!')">ප්‍රශ්නය පළ</button>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// KOMBUWAEDU — Fully Integrated Frontend
+// API: /api/v1/  (set BASE_URL below to match your backend)
+// Falls back to local demo data if API unavailable
+// ═══════════════════════════════════════════════════════════════════
+
+const BASE_URL = 'http://localhost:3000/api/v1';
+
+// ── Global app state ─────────────────────────────────────────────────
+const APP = {
+  token:    localStorage.getItem('kw_token') || null,
+  user:     JSON.parse(localStorage.getItem('kw_user') || 'null'),
+  stream:   null,
+  grade:    null,
+  vGrade:   12,
+};
+
+// ── Core API helper ───────────────────────────────────────────────────
+async function api(method, path, body, isForm) {
+  const opts = { method, headers: {} };
+  if (APP.token) opts.headers['Authorization'] = 'Bearer ' + APP.token;
+  if (body && !isForm) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  } else if (body && isForm) {
+    opts.body = body; // FormData
+  }
+  try {
+    const res = await fetch(BASE_URL + path, opts);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status, data });
+    return data;
+  } catch (err) {
+    if (!err.status) err.status = 0; // network error
+    throw err;
+  }
+}
+
+// ── Auth persistence ──────────────────────────────────────────────────
+function saveAuth(user, token) {
+  APP.token = token;
+  APP.user  = user;
+  APP.stream = user.stream;
+  APP.grade  = parseInt(user.grade);
+  APP.vGrade = parseInt(user.grade);
+  localStorage.setItem('kw_token', token);
+  localStorage.setItem('kw_user',  JSON.stringify(user));
+}
+function clearAuth() {
+  APP.token = APP.user = APP.stream = APP.grade = null;
+  localStorage.removeItem('kw_token');
+  localStorage.removeItem('kw_user');
+}
+function isLoggedIn() { return !!(APP.token && APP.user); }
+
+// ── Stream / subject constants (for UI, independent of API) ──────────
+const STREAMS = {
+  phy:{name:'Physical Science',icon:'⚗️',color:'#4F7FE8',bg:'rgba(79,127,232,0.12)',subjects:[{id:'m',n:'ඒකාබද්ධ ගණිතය'},{id:'ph',n:'භෞතිකය'},{id:'ch',n:'රසායනය'}]},
+  bio:{name:'Bio Science',icon:'🧬',color:'#3DAF72',bg:'rgba(61,175,114,0.12)',subjects:[{id:'bi',n:'ජීව විද්‍යාව'},{id:'ch',n:'රසායනය'},{id:'ph',n:'භෞතිකය'}]},
+  com:{name:'Commerce',icon:'📊',color:'#C9A84C',bg:'rgba(201,168,76,0.12)',subjects:[{id:'ac',n:'ගිණුම්කරණය'},{id:'ec',n:'ආර්ථිකය'},{id:'bs',n:'ව්‍යාපාර'}]},
+  art:{name:'Arts',icon:'🎨',color:'#A78BFA',bg:'rgba(168,139,250,0.12)',subjects:[{id:'hi',n:'ඉතිහාසය'},{id:'po',n:'දේශපාලනය'},{id:'ge',n:'භූගෝලය'}]},
+  tec:{name:'Technology',icon:'💻',color:'#2EC4B6',bg:'rgba(46,196,182,0.12)',subjects:[{id:'ict',n:'ICT'},{id:'et',n:'ඉංජිනේරු'},{id:'sc',n:'විද්‍යාව'}]},
+};
+
+// ── Demo fallback question data ───────────────────────────────────────
+const DEMO_QDB={
+  m:[{t:'∫sin²x dx=?',o:['x/2−sin2x/4+C','x/2+sin2x/4+C','−cos²x/2+C','sinxcosx+C'],a:0},{t:'y=x³−3x, x=2 tangent:',o:['y=9x−16','y=9x−14','y=3x−4','y=6x'],a:0},{t:'P(A∪B)=P(A)+P(B)−?',o:['P(A∩B)','P(A)P(B)','P(A|B)','P(B|A)'],a:0},{t:'lim(x→0) sinx/x=?',o:['1','0','∞','−1'],a:0},{t:'∫₀¹ x² dx=?',o:['1/3','1/2','2/3','1/4'],a:0},{t:'sin(A+B)=?',o:['sinAcosB+cosAsinB','sinAcosB−cosAsinB','cosAcosB','sinAsinB'],a:0},{t:'det [[1,2],[3,4]]=?',o:['−2','2','10','−10'],a:0},{t:'log₂8=?',o:['3','4','2','8'],a:0},{t:'AP: a=3,d=4,T₁₀=?',o:['39','40','43','36'],a:0},{t:'dy/dx=y/x→y=?',o:['cx','cx²','x+c','eˣc'],a:0}],
+  ph:[{t:'EMF:',o:['EMF=−dΦ/dt','F=ma','V=IR','P=IV'],a:0},{t:'v²=u²+2as→s=?',o:['(v²−u²)/2a','v²+u²','(v+u)/a','v²/2a'],a:0},{t:'c=?',o:['ආලෝකය','ශබ්දය','තාපය','ගුරුත්ව'],a:0},{t:'Parallel R1,R2:',o:['R1R2/(R1+R2)','R1+R2','R1−R2','R1/R2'],a:0},{t:'v=fλ→f=?',o:['v/λ','vλ','λ/v','1/vλ'],a:0},{t:'Photoelectric E=?',o:['hf','mc²','mv²/2','qV'],a:0},{t:'Newton 3rd:',o:['Action=Reaction','F=ma','W=mg','P=mv'],a:0},{t:'SL household V:',o:['230V','110V','12V','24V'],a:0},{t:'Snell:',o:['n₁sinθ₁=n₂sinθ₂','v=fλ','E=hf','F=qvB'],a:0},{t:'PV/T=?',o:['constant','P/T','V/T','PT'],a:0}],
+  ch:[{t:'H₂O molar mass:',o:['18','16','20','34'],a:0},{t:'pH+pOH=?',o:['14','7','1','0'],a:0},{t:'Avogadro:',o:['6.02×10²³','3.01×10²³','6.02×10²²','1.38×10²³'],a:0},{t:'CH₄:',o:['sp³','sp²','sp','dsp²'],a:0},{t:'Acid+Base:',o:['Salt+H₂O','Gas','Oxide','Element'],a:0},{t:'SN2:',o:['Inversion','Retention','Racemisation','None'],a:0},{t:'ethanol:',o:['ethanol','methanol','propanol','butanol'],a:0},{t:'Alkene Br₂:',o:['Decolourises','No change','Precipitate','Gas'],a:0},{t:'Fe₂O₃:',o:['+3','+2','+4','+1'],a:0},{t:'Period 1:',o:['H,He','H only','H,Li','Li,He'],a:0}],
+  bi:[{t:'DNA replication:',o:['DNA Polymerase','RNA Polymerase','Helicase','Ligase'],a:0},{t:'ATP:',o:['Adenosine Triphosphate','Adenine','Alanine','Amino'],a:0},{t:'Photosynthesis:',o:['Chloroplast','Mitochondria','Ribosome','Nucleus'],a:0},{t:'Universal donor:',o:['O−','AB+','A+','B−'],a:0},{t:'Osmosis:',o:['Low→High','High→Low','Both','None'],a:0},{t:'Crossing over:',o:['Prophase I','Metaphase I','Anaphase I','Telophase I'],a:0},{t:'Insulin:',o:['Pancreas','Liver','Kidney','Thyroid'],a:0},{t:'Darwin:',o:['Fittest survives','Inheritance','Mutation','Migration'],a:0},{t:'Enzyme:',o:['Lock & Key','Induced Fit','Random','Competitive'],a:0},{t:'Mitosis:',o:['PMAT','PMATI','PMTI','APMT'],a:0}],
+  ac:[{t:'Working Capital=?',o:['CA−CL','FA−CL','CA+CL','FA+CA'],a:0},{t:'Depreciation:',o:['(Cost−Res)/Life','Cost/Life','Cost×Rate','BV'],a:0},{t:'Goodwill:',o:['Intangible','Tangible','Current','Liability'],a:0},{t:'Acid Test:',o:['(CA−Stock)/CL','CA/CL','NP/Sales','Sales/Cap'],a:0},{t:'Gross Profit:',o:['Sales−COGS','Sales−Exp','Rev−Tax','Inc−Int'],a:0},{t:'FIFO:',o:['Higher profit','Lower','Same','N/A'],a:0},{t:'Accrued income:',o:['Current Asset','Current Liab','Fixed Asset','Capital'],a:0},{t:'Bank Rec:',o:['CRB−,BRS+','CRB+,BRS−','Both same','None'],a:0},{t:'Capital exp:',o:['Asset','Expense','Liability','Income'],a:0},{t:'Trial debit:',o:['Assets+Exp','Liab+Inc','Capital+Rev','Purch+Sales'],a:0}],
+  ec:[{t:'GDP=C+I+G+?',o:['(X−M)','X+M','X×M','X/M'],a:0},{t:'Inflation:',o:['CPI','GDP','GNP','HDI'],a:0},{t:'PED:',o:['%ΔQ/%ΔP','ΔQ/ΔP','P/Q','Q/P'],a:0},{t:'MPC+MPS:',o:['1','0','GDP','Income'],a:0},{t:'Multiplier:',o:['1/(1−MPC)','1/MPC','MPC/(1−MPC)','1+MPC'],a:0},{t:'Perfect Comp:',o:['Many homogeneous','Few','One','Two'],a:0},{t:'Giffen:',o:['P↑→D↑','P↑→D↓','Luxury','Normal'],a:0},{t:'Fiscal:',o:['Tax & Spend','Interest','Money supply','Exchange'],a:0},{t:'Monopoly:',o:['Price maker','Price taker','Market','World'],a:0},{t:'Central Bank:',o:['Monetary policy','Fiscal','Trade','Labour'],a:0}],
+};
+['hi','po','ge','ict','et','sc','bs'].forEach(s=>{if(!DEMO_QDB[s])DEMO_QDB[s]=DEMO_QDB.ec.map((q,i)=>({...q,t:`${s.toUpperCase()} Q${i+1}: ${q.t}`}));});
+
+// ── Demo paper state (used when API not reachable) ────────────────────
+let DEMO_PAPERS = {};
+function initDemoPapers(){
+  DEMO_PAPERS = {};
+  Object.keys(STREAMS).forEach(stk=>{
+    DEMO_PAPERS[stk]={};
+    [12,13].forEach(g=>{
+      DEMO_PAPERS[stk][g]={};
+      STREAMS[stk].subjects.forEach(sub=>{
+        const qs=DEMO_QDB[sub.id]||DEMO_QDB.ec;
+        const m30=()=>[...qs,...qs,...qs].slice(0,30).map((q,i)=>({...q,question_text:`[${i+1}] ${q.t}`,options:[q.o[0],q.o[1],q.o[2],q.o[3]],correct_option:['A','B','C','D'][q.a]}));
+        const demoQ=qs.map((q,i)=>({sort_order:i+1,question_text:q.t,option_a:q.o[0],option_b:q.o[1],option_c:q.o[2],option_d:q.o[3],correct_option:['A','B','C','D'][q.a]}));
+        const make=(id,type,name,qlist,time,msUp)=>({
+          id,type,subject_id:sub.id,subject_name:sub.n,grade:String(g),
+          title:name,question_count:qlist.length,time_seconds:time,
+          ms_available:msUp,done:false,score:null,_answers:{},_qs:qlist
+        });
+        DEMO_PAPERS[stk][g][sub.id]={
+          daily:[
+            make(`d1_${stk}_${g}_${sub.id}`,'daily',`${sub.n} · Daily 1 · ${g}ශ්‍රේ`,demoQ,600,true),
+            make(`d2_${stk}_${g}_${sub.id}`,'daily',`${sub.n} · Daily 2 · ${g}ශ්‍රේ`,[...demoQ].reverse(),600,false),
+            make(`d3_${stk}_${g}_${sub.id}`,'daily',`${sub.n} · Daily 3 · ${g}ශ්‍රේ`,demoQ.map((q,i)=>({...q,question_text:`[v3] ${q.question_text}`})),600,true),
+          ],
+          srp:[
+            make(`srp1_${stk}_${g}_${sub.id}`,'srp',`${sub.n} · SRP සතිය 1 · ${g}ශ්‍රේ`,m30(),1800,true),
+            make(`srp2_${stk}_${g}_${sub.id}`,'srp',`${sub.n} · SRP සතිය 2 · ${g}ශ්‍රේ`,m30().map((q,i)=>({...q,question_text:`[w2/${i+1}] ${q.question_text}`})),1800,false),
+          ]
+        };
+      });
+    });
+  });
+}
+initDemoPapers();
+function findDemoPaper(pid){for(const stk of Object.keys(DEMO_PAPERS))for(const g of[12,13])for(const sid of Object.keys(DEMO_PAPERS[stk][g]||{})){const b=DEMO_PAPERS[stk][g][sid];for(const t of['daily','srp']){const f=b[t].find(p=>p.id===pid);if(f)return f;}}return null;}
+
+// ── Exam state ────────────────────────────────────────────────────────
+let curP=null, curPaperId=null, curQ=0, timerI=null, tLeft=0, locked=false;
+let paperQuestions=[], paperMeta=null;
+// rGrade/rStream for registration modal
+let rGrade=12, rStream='';
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTH FLOWS
+// ═══════════════════════════════════════════════════════════════════
+function selSC(el){document.querySelectorAll('.sc').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
+
+// OTP step tracking
+let regMobile='', regStep='form'; // 'form' | 'otp'
+
+async function doRegister() {
+  if(!rStream){showToast('ධාරාව select කරන්න!');return;}
+  const name  = document.getElementById('reg-name').value.trim();
+  const phone = document.getElementById('reg-phone')?.value.trim() || '+94771234567';
+  const dist  = document.getElementById('reg-dist').value;
+  if(!name){showToast('නම ඇතුළත් කරන්න');return;}
+
+  // Try real API first
+  try {
+    setLoadingBtn('reg-submit', true, 'යවමින්...');
+    await api('POST','/auth/register',{
+      mobile: phone, name, password: 'Pass@1234',
+      stream: rStream, grade: String(rGrade),
+      district: districtMap(dist), school:'Demo School', exam_year:2026
+    });
+    regMobile = phone;
+    showOTPStep(phone);
+  } catch(err) {
+    if(err.status===409) { showToast('Mobile already registered — logging in'); tryLogin(phone,'Pass@1234'); return; }
+    // API unreachable — use demo mode
+    console.warn('API unavailable, using demo mode:', err.message);
+    activateDemoUser(name, rStream, rGrade, dist);
+  } finally { setLoadingBtn('reg-submit', false, 'ලියාපදිංචිය ✓'); }
+}
+
+function showOTPStep(mobile) {
+  const md = document.getElementById('mo-reg').querySelector('.md');
+  md.innerHTML = `
+    <button class="md-x" onclick="cm('reg')">✕</button>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:.25rem">OTP සත්‍යාපනය</div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:1rem">${mobile} වෙත 6-digit OTP යවන ලදී</div>
+    <div style="margin-bottom:.75rem">
+      <label style="font-size:10.5px;color:var(--mu);display:block;margin-bottom:4px">OTP කේතය</label>
+      <input class="fi" id="otp-input" placeholder="000000" maxlength="6" style="text-align:center;font-size:1.4rem;letter-spacing:.5rem" autofocus/>
+    </div>
+    <button class="btn btn-g" id="otp-submit" style="width:100%;padding:11px;font-size:13px" onclick="doVerifyOTP()">සත්‍යාපනය කරන්න</button>
+    <div style="text-align:center;margin-top:.75rem;font-size:11px;color:var(--mu)">OTP නොලැබුනේ? <span style="color:var(--g);cursor:pointer" onclick="resendOTP('${mobile}')">නැවත යවන්න</span></div>
+    <div style="text-align:center;margin-top:.5rem;font-size:10.5px;color:rgba(201,168,76,0.5)">Dev mode: backend OTP logged to console</div>`;
+}
+
+async function doVerifyOTP() {
+  const code = document.getElementById('otp-input')?.value.trim();
+  if(!code || code.length!==6){showToast('OTP 6 ලකුණු ඇතුළත් කරන්න');return;}
+  try {
+    setLoadingBtn('otp-submit',true,'සත්‍යාපනය...');
+    const data = await api('POST','/auth/verify-otp',{mobile:regMobile,code,purpose:'register'});
+    saveAuth(data.user, data.accessToken);
+    finishLogin(data.user);
+  } catch(err) {
+    showToast('OTP වැරදිය: '+err.message);
+  } finally { setLoadingBtn('otp-submit',false,'සත්‍යාපනය කරන්න'); }
+}
+
+async function resendOTP(mobile) {
+  try {
+    await api('POST','/auth/forgot-password',{mobile});
+    showToast('නව OTP යවන ලදී');
+  } catch(err) { showToast('Error: '+err.message); }
+}
+
+async function tryLogin(mobile, password) {
+  try {
+    const data = await api('POST','/auth/login',{mobile,password});
+    saveAuth(data.user, data.accessToken);
+    finishLogin(data.user);
+  } catch(err) { showToast('Login error: '+err.message); }
+}
+
+function activateDemoUser(name, stream, grade, dist) {
+  const user = {id:'demo-'+Date.now(),name,role:'student',stream,grade:String(grade),district:dist};
+  saveAuth(user,'demo-token');
+  finishLogin(user);
+}
+
+function finishLogin(user) {
+  cm('reg');
+  const st = STREAMS[user.stream] || STREAMS.phy;
+  APP.vGrade = parseInt(user.grade) || 12;
+  document.getElementById('login-btn').style.display='none';
+  document.getElementById('user-pill').textContent=`${st.icon} ${user.grade}ශ්‍රේ · ${st.name}`;
+  document.getElementById('user-pill').style.display='block';
+  document.getElementById('gtab12').className=APP.vGrade===12?'gtab on':'gtab';
+  document.getElementById('gtab13').className=APP.vGrade===13?'gtab on':'gtab';
+  loadDashboard();
+  gp('dashboard');
+  showToast(`සාදරයෙන් පිළිගනිමු, ${user.name}! ✓`);
+}
+
+async function doLogout() {
+  try { await api('POST','/auth/logout'); } catch(_){}
+  clearAuth();
+  location.reload();
+}
+
+function demoLogin() {
+  rStream='phy'; rGrade=12;
+  document.querySelectorAll('.sc')[0]?.classList.add('sel');
+  document.getElementById('g12b').className='btn btn-g';
+  activateDemoUser('Demo Student','phy',12,'Colombo');
+}
+
+function reqAuth(p){if(!isLoggedIn()){om('reg');return;}gp(p);if(p==='pastpapers')setTimeout(loadPastPapers,50);}
+function setGrade(g,el){APP.vGrade=g;document.querySelectorAll('.gtab').forEach(b=>b.classList.remove('on'));el.classList.add('on');loadDashboard();}
+
+// ═══════════════════════════════════════════════════════════════════
+// DASHBOARD — loads papers from API or demo fallback
+// ═══════════════════════════════════════════════════════════════════
+let dashCache = {};
+
+async function loadDashboard() {
+  if(!isLoggedIn()) return;
+  const user = APP.user;
+  const st   = STREAMS[user.stream] || STREAMS.phy;
+  document.getElementById('dash-title').textContent=`${st.icon} ${st.name} — ප්‍රශ්න පත්‍ර`;
+  document.getElementById('dash-meta').textContent=`${APP.vGrade} ශ්‍රේණිය · Loading...`;
+  document.getElementById('dash-content').innerHTML='<div style="text-align:center;padding:2rem;color:var(--mu)">📡 Papers ලබාගනිමින්...</div>';
+
+  let papers = [];
+  let usingDemo = false;
+  try {
+    papers = await api('GET',`/papers?grade=${APP.vGrade}`);
+  } catch(err) {
+    usingDemo = true;
+    // Build papers list from demo data
+    const demoPapers = DEMO_PAPERS[user.stream]?.[APP.vGrade] || {};
+    Object.values(demoPapers).forEach(subj=>{
+      [...subj.srp,...subj.daily].forEach(p=>papers.push(p));
+    });
+  }
+
+  dashCache = {}; // key: id → paper
+  papers.forEach(p=>{ dashCache[p.id]=p; });
+
+  renderDashWithPapers(papers, st, usingDemo);
+}
+
+function renderDashWithPapers(papers, st, usingDemo) {
+  document.getElementById('dash-meta').textContent=
+    `${APP.vGrade} ශ්‍රේණිය papers · Grade 12 & 13 access${usingDemo?' · Demo Mode':''}`
+
+  // Group by subject
+  const bySubj = {};
+  papers.forEach(p=>{
+    const sid = p.subject_id;
+    if(!bySubj[sid]) bySubj[sid]=[];
+    bySubj[sid].push(p);
+  });
+
+  let html=`<div class="srp-highlight"><span style="font-size:1.3rem">⭐</span><div style="flex:1"><div style="font-size:12.5px;font-weight:700;color:var(--g)">SRP — Weekly Special Ranking Papers</div><div style="font-size:10.5px;color:var(--mu);margin-top:2px">ප්‍ර 30 · 30 මිනිත්තු · Island-wide · ${APP.vGrade} ශ්‍රේ · ලකුණු ක්‍රමය ඒ දිනෙ upload${usingDemo?' · Demo mode — backend offline':''}</div></div></div>`;
+
+  st.subjects.forEach(sub=>{
+    const subPapers = bySubj[sub.id] || [];
+    if(!subPapers.length) return;
+    const srps    = subPapers.filter(p=>p.type==='srp');
+    const dailies = subPapers.filter(p=>p.type==='daily');
+    const done    = subPapers.filter(p=>p.done||p.is_completed).length;
+    html+=`<div class="subj-block"><div class="subj-hdr"><div class="sdot" style="background:${st.color}"></div><div style="font-size:13.5px;font-weight:700">${sub.n}</div><div style="font-size:10.5px;color:var(--mu)">${done}/${subPapers.length} සම්.</div><div style="font-size:10.5px;color:var(--mu);margin-left:auto">${APP.vGrade}ශ්‍රේ</div></div><div class="papers-row">`;
+    [...srps,...dailies].forEach(p=>{ html+=pCard(p,st); });
+    html+=`</div></div>`;
+  });
+  document.getElementById('dash-content').innerHTML=html;
+}
+
+function pCard(p, st) {
+  const isSRP=p.type==='srp';
+  const tot=p.question_count||p._qs?.length||10;
+  const done=p.done||p.is_completed||false;
+  const score=p.score!=null?p.score:null;
+  const msUp=p.ms_available||p.msUp||false;
+  return `<div class="pc ${isSRP?'srp':''} ${done?'done':''}" onclick="startPaper('${p.id}')">
+    <div class="pthumb" style="background:${st.bg}">${isSRP?'⭐':'📝'}<span class="pbadge ${done?'b-ok':isSRP?'b-srp':'b-ac'}">${done?'✓':isSRP?'SRP':'Daily'}</span></div>
+    <div class="pbody"><div class="psub">${p.subject_name||p.subjN||''}${isSRP?' · SRP':' · Daily'}</div><div class="pname">${p.title||p.name}</div>
+    <div class="pmeta"><span>📋 ප්‍ර ${tot}</span><span class="${done?'sc2':'tc'}">${done&&score!=null?score+'/'+tot:'⏱ '+(tot===30?'30':'10')+'මිනි'}</span></div>
+    ${done&&msUp?`<div style="margin-top:6px"><span class="bdg b-ok" style="cursor:pointer;font-size:9px" onclick="event.stopPropagation();openMSPaper('${p.id}')">📖 ලකුණු ක්‍රමය</span></div>`:''}
+    ${done&&!msUp?`<div style="margin-top:5px;font-size:9.5px;color:var(--wn)">⏳ ලකුණු ක්‍රමය — ශේෂ දිනෙ</div>`:''}
+    </div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EXAM ENGINE — wired to /papers/:id/questions + /papers/:id/submit
+// ═══════════════════════════════════════════════════════════════════
+async function startPaper(pid) {
+  const cached = dashCache[pid] || findDemoPaper(pid);
+  if(!cached) return;
+
+  // Already done → open marking scheme
+  if(cached.done || cached.is_completed) {
+    if(cached.ms_available||cached.msUp) openMSPaper(pid);
+    else showToast('⏳ ලකුණු ක්‍රමය — ශේෂ දිනෙ');
+    return;
+  }
+
+  showToast('ප්‍රශ්නාවලිය ලබාගනිමින්...');
+  curPaperId = pid;
+  let qs = null;
+  let meta = cached;
+
+  try {
+    const data = await api('GET',`/papers/${pid}/questions`);
+    qs   = data.questions;
+    meta = data.paper;
+  } catch(err) {
+    // Demo fallback
+    const demo = findDemoPaper(pid);
+    if(!demo){ showToast('Paper not found'); return; }
+    qs   = demo._qs;
+    meta = demo;
+  }
+
+  paperQuestions = qs;
+  paperMeta      = meta;
+  curP           = { id:pid, answers:{}, type:meta.type, ms_available:meta.ms_available||meta.msUp||false };
+  curQ = 0; locked = false;
+
+  document.getElementById('ex-title').textContent = meta.title||meta.name;
+  document.getElementById('ex-meta').textContent  = `${qs.length} ප්‍රශ්න · ${meta.type==='srp'?'30':'10'} මිනිත්තු · ${meta.grade} ශ්‍රේ`;
+  const strip=document.getElementById('srp-strip'), hdr=document.getElementById('exhdr');
+  if(meta.type==='srp'){strip.style.display='flex';hdr.classList.add('srp-mode');}
+  else{strip.style.display='none';hdr.classList.remove('srp-mode');}
+
+  rQNav(); rQ(); updProg(); startTimer(meta.time_seconds||meta.time||600);
+  gp('exam');
+}
+
+function rQNav(){
+  document.getElementById('q-nav').innerHTML=paperQuestions.map((q,i)=>
+    `<button class="qnb ${i===curQ?'cur':curP.answers[i]!==undefined?'ans':''}" onclick="jumpQ(${i})">${i+1}</button>`
+  ).join('');
+}
+function rQ(){
+  const q=paperQuestions[curQ], sel=curP.answers[curQ];
+  const opts=[q.option_a||q.o?.[0]||'A',q.option_b||q.o?.[1]||'B',q.option_c||q.o?.[2]||'C',q.option_d||q.o?.[3]||'D'];
+  document.getElementById('exam-body').innerHTML=`<div class="qcard"><div class="qnum">ප්‍රශ්නය ${curQ+1}/${paperQuestions.length}</div><div class="qtxt">${q.question_text||q.t}</div><div class="qopts">${opts.map((o,j)=>`<div class="qo ${sel===j?'sel':''} ${locked?'lk':''}" onclick="${locked?'':'selA('+j+')'}""><div class="ol">${'ABCD'[j]}</div><span>${o}</span></div>`).join('')}</div></div><div style="display:flex;gap:.5rem;margin-top:.4rem">${curQ>0?`<button class="btn btn-o" style="font-size:11px;padding:6px 12px" onclick="jumpQ(${curQ-1})">← පෙර</button>`:''}${curQ<paperQuestions.length-1?`<button class="btn btn-g" style="font-size:11px;padding:6px 12px" onclick="jumpQ(${curQ+1})">ඊළඟ →</button>`:''}</div>`;
+}
+function selA(j){if(locked)return;curP.answers[curQ]=j;updProg();rQNav();rQ();}
+function jumpQ(i){curQ=i;rQNav();rQ();}
+function updProg(){
+  const tot=paperQuestions.length,done=Object.keys(curP.answers).length;
+  document.getElementById('prog').style.width=Math.round((curQ+1)/tot*100)+'%';
+  document.getElementById('prog-txt').textContent=`ප්‍රශ්නය ${curQ+1}/${tot}`;
+  document.getElementById('ans-txt').textContent=`${done}/${tot} පිළිතුරු`;
+  document.getElementById('ftr-hint').textContent=done<tot?`${tot-done}ක් ඉතිරිව`:'සියල්ල ✓';
+}
+function startTimer(secs){
+  clearInterval(timerI);tLeft=secs;
+  function tick(){
+    const m=Math.floor(tLeft/60),s=tLeft%60;
+    document.getElementById('tm-mn').textContent=String(m).padStart(2,'0');
+    document.getElementById('tm-sn').textContent=String(s).padStart(2,'0');
+    const u=tLeft<=60;
+    ['tm-m','tm-s'].forEach(id=>{document.getElementById(id).className='tb'+(u?' urgent':'');});
+    if(tLeft<=0){clearInterval(timerI);document.getElementById('mo-timeup').classList.add('open');}
+    tLeft--;
+  }
+  tick();timerI=setInterval(tick,1000);
+}
+function confirmSub(){
+  const tot=paperQuestions.length,done=Object.keys(curP.answers).length;
+  document.getElementById('confirm-msg').textContent=done<tot?`${tot-done}ක් නොදෙන ලදී. ඉදිරිපත් කළ පසු වෙනස් නොකළ හැකිය.`:'ඉදිරිපත් කළ පසු වෙනස් නොකළ හැකිය.';
+  document.getElementById('mo-confirm').classList.add('open');
+}
+async function doSubmit(){
+  cm('confirm');cm('timeup');clearInterval(timerI);locked=true;
+
+  // Convert index answers to letter answers for API: {0:0,1:2} → {"0":"A","1":"C"}
+  const letterAnswers={};
+  Object.entries(curP.answers).forEach(([k,v])=>{ letterAnswers[k]=['A','B','C','D'][v]; });
+
+  let result=null;
+  try {
+    result = await api('POST',`/papers/${curPaperId}/submit`,{answers:letterAnswers});
+  } catch(err) {
+    if(err.status===409){ showToast('දැනටමත් ඉදිරිපත් කළේ'); return; }
+    // Demo fallback: score locally
+    let sc=0;
+    paperQuestions.forEach((q,i)=>{
+      const ca=['A','B','C','D'].indexOf(q.correct_option);
+      if(curP.answers[i]===ca) sc++;
+    });
+    result={score:sc,total:paperQuestions.length,percentage:Math.round(sc/paperQuestions.length*100),
+            rank:{national_rank:Math.floor(Math.random()*300)+4,district_rank:Math.floor(Math.random()*50)+1},
+            demoMode:true};
+  }
+
+  // Update local cache
+  const cached = dashCache[curPaperId] || findDemoPaper(curPaperId);
+  if(cached){ cached.done=true; cached.is_completed=true; cached.score=result.score; }
+
+  showResultPage(result);
+}
+
+function showResultPage(result) {
+  const tot=result.total||paperQuestions.length;
+  const sc=result.score||0;
+  const pct=result.percentage||Math.round(sc/tot*100);
+  const isSRP=curP.type==='srp';
+  const rank=result.rank||{national_rank:Math.floor(Math.random()*300)+4,district_rank:Math.floor(Math.random()*40)+1};
+  const total=result.totalParticipants||Math.floor(Math.random()*4000)+500;
+
+  document.getElementById('result-content').innerHTML=`
+    ${isSRP?`<div style="background:linear-gradient(135deg,rgba(201,168,76,0.12),rgba(201,168,76,0.03));border:1px solid rgba(201,168,76,0.28);border-radius:var(--r);padding:.75rem 1.1rem;margin-bottom:1rem;font-size:12.5px;color:var(--g);font-weight:700">⭐ SRP — විශේෂ ශ්‍රේණිගත ප්‍රශ්න පත්‍රය · Island-wide ranking</div>`:''}
+    <div class="res-hero">
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu);margin-bottom:.65rem">${paperMeta?.title||''}</div>
+      <div class="res-score">${sc}/${tot}</div>
+      <div class="res-lbl">${pct}% — ${pct>=80?'විශිෂ්ට 🌟':pct>=60?'හොඳ 👍':pct>=40?'සාමාන්‍ය':'වැඩිදියුණු 💪'}${result.demoMode?' · Demo Mode':''}</div>
+      <div class="res-stats">
+        <div class="rs"><div class="rsn" style="color:var(--ok)">${sc}</div><div class="rsl">නිවැරදි</div></div>
+        <div class="rs"><div class="rsn" style="color:var(--dn)">${tot-sc-(tot-Object.keys(curP.answers).length)}</div><div class="rsl">වැරදි</div></div>
+        <div class="rs"><div class="rsn" style="color:var(--wn)">${tot-Object.keys(curP.answers).length}</div><div class="rsl">මඟ</div></div>
+        <div class="rs"><div class="rsn" style="color:var(--g)">#${rank.national_rank||'—'}</div><div class="rsl">ශ්‍රේණිය</div></div>
+      </div>
+    </div>
+    <div class="ms-notice">
+      <div style="font-size:1.75rem;flex-shrink:0">⏳</div>
+      <div><div style="font-size:12px;font-weight:700;color:var(--wn);margin-bottom:4px">ලකුණු ක්‍රමය — ශේෂ දිනෙ upload</div>
+      <div style="font-size:11.5px;color:var(--mu)">Real-time: ලකුණු පමණ. Correct answers ඒ දිනෙ "ලකුණු ක්‍රමය" section-ල upload.</div></div>
+    </div>
+    <div class="card" style="padding:1.1rem;margin-bottom:1.1rem">
+      <div style="font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin-bottom:.7rem">ශ්‍රේණිගත — ${isSRP?'⭐ SRP':'📝 Daily'} · ${paperMeta?.grade||APP.vGrade} ශ්‍රේ</div>
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+        <div><div style="font-size:1.3rem;font-weight:700;color:var(--g)">#${rank.national_rank||'—'}</div><div style="font-size:10.5px;color:var(--mu)">ජාතික</div></div>
+        <div><div style="font-size:1.3rem;font-weight:700;color:var(--ac)">#${rank.district_rank||'—'}</div><div style="font-size:10.5px;color:var(--mu)">දිස්ත්‍රික්</div></div>
+        <div><div style="font-size:1.3rem;font-weight:700;color:var(--ac2)">${total.toLocaleString()}</div><div style="font-size:10.5px;color:var(--mu)">සහභාගිවන්</div></div>
+        <div><div style="font-size:1.3rem;font-weight:700;color:var(--ok)">Top ${Math.max(1,Math.round((rank.national_rank||50)/total*100))}%</div><div style="font-size:10.5px;color:var(--mu)">Percentile</div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:.65rem;flex-wrap:wrap">
+      <button class="btn btn-o" onclick="loadDashboard();gp('dashboard')">← ප්‍රශ්න පත්‍ර</button>
+      <button class="btn btn-o" onclick="loadRankings()">🏆 ශ්‍රේණිගත</button>
+      <button class="btn btn-g" onclick="openMSPaper('${curPaperId}')">📖 ලකුණු ක්‍රමය</button>
+    </div>`;
+  gp('result');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MARKING SCHEME — fetches from /papers/:id/marking-scheme
+// ═══════════════════════════════════════════════════════════════════
+async function openMSPaper(pid) {
+  gp('marking');
+  document.getElementById('ms-content').innerHTML='<div style="text-align:center;padding:2rem;color:var(--mu)">📡 ලකුණු ක්‍රමය ලබාගනිමින්...</div>';
+  let qs=null, studentScore=null, totalQs=null;
+  try {
+    const data = await api('GET',`/papers/${pid}/marking-scheme`);
+    qs=data.questions; studentScore=data.studentScore; totalQs=data.totalQuestions;
+  } catch(err) {
+    if(err.status===403){
+      document.getElementById('ms-content').innerHTML=`<div class="ms-notice"><div style="font-size:1.75rem">⏳</div><div><div style="font-size:12px;font-weight:700;color:var(--wn);margin-bottom:4px">ලකුණු ක්‍රමය නොලදී</div><div style="font-size:11.5px;color:var(--mu)">${err.data?.error||'ශේෂ දිනෙ upload වේ.'}</div></div></div>`;
+      return;
+    }
+    // Demo fallback
+    const demo = findDemoPaper(pid);
+    if(!demo){ document.getElementById('ms-content').innerHTML='<div style="padding:2rem;color:var(--mu)">Paper not found</div>'; return; }
+    qs = demo._qs.map((q,i)=>({
+      sort_order:i+1, question_text:q.question_text||q.t,
+      option_a:q.option_a||q.o?.[0], option_b:q.option_b||q.o?.[1],
+      option_c:q.option_c||q.o?.[2], option_d:q.option_d||q.o?.[3],
+      correct_option:q.correct_option||['A','B','C','D'][q.a],
+      studentAnswer: curPaperId===pid&&curP?.answers[i]!=null ? ['A','B','C','D'][curP.answers[i]] : null,
+    }));
+    studentScore = demo.score;
+    totalQs = qs.length;
+  }
+
+  const meta = dashCache[pid] || findDemoPaper(pid);
+  let html=`<div class="card" style="padding:.9rem 1.1rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+    <div><div style="font-size:13px;font-weight:700">${meta?.title||meta?.name||'ලකුණු ක්‍රමය'}</div>
+    <div style="font-size:10.5px;color:var(--mu);margin-top:2px">ලකුණු ක්‍රමය · ${meta?.grade||APP.vGrade} ශ්‍රේ</div></div>
+    ${studentScore!=null?`<span class="bdg b-ok">ලකුණු: ${studentScore}/${totalQs}</span>`:''}
+  </div>`;
+  html+=qs.map((q,i)=>{
+    const ua=q.studentAnswer, ca=q.correct_option, isC=ua===ca, isS=!ua;
+    const opts=[q.option_a,q.option_b,q.option_c,q.option_d];
+    return `<div class="mscard"><div class="ms-qhdr"><div style="flex:1"><div style="font-size:9px;color:var(--mu);margin-bottom:2px">ප්‍රශ්නය ${i+1}</div><div style="font-size:13px;line-height:1.75">${q.question_text}</div></div>
+    ${ua!=null?`<span class="bdg ${isS?'b-wn':isC?'b-ok':'b-dn'}">${isS?'මඟ':isC?'✓':'✗'}</span>`:''}</div>
+    <div>${opts.map((o,j)=>{const letter='ABCD'[j];const isCor=letter===ca;const isWr=ua&&letter===ua&&ua!==ca;
+      return `<div class="ms-opt ${isCor?'ms-cor':'ms-neu'}"><div class="ol" style="background:${isCor?'rgba(61,175,114,0.22)':isWr?'rgba(226,92,92,0.2)':'rgba(255,255,255,0.06)'}">${letter}</div><span style="flex:1">${o}</span>${isCor?'<span style="font-size:10px;color:var(--ok);font-weight:700">✓ නිවැරදි</span>':''}${isWr?'<span style="font-size:10px;color:var(--dn)">✗ ඔබේ</span>':''}</div>`;
+    }).join('')}</div></div>`;
+  }).join('');
+  document.getElementById('ms-content').innerHTML=html;
+}
+
+async function renderMS() {
+  if(!isLoggedIn()){document.getElementById('ms-content').innerHTML='<div style="text-align:center;padding:2.5rem;color:var(--mu)">ලියාපදිංචිය කරන්න.</div>';return;}
+  // Show the user's own completed papers' marking schemes
+  const sf=document.getElementById('msf-stream').value;
+  const ss=document.getElementById('msf-subj').value;
+  const sg=document.getElementById('msf-grade').value;
+  const st=document.getElementById('msf-type').value;
+
+  const st2=STREAMS[APP.user.stream]||STREAMS.phy;
+  const gradeNum=sg?parseInt(sg):APP.vGrade;
+  const demoPapers=DEMO_PAPERS[APP.user.stream]?.[gradeNum]||{};
+  let avail=[];
+  Object.entries(demoPapers).forEach(([sid,bucket])=>{
+    if(ss&&sid!==ss) return;
+    const types=st?[st]:['srp','daily'];
+    types.forEach(tp=>bucket[tp].filter(p=>p.ms_available||p.msUp).forEach(p=>avail.push(p)));
+  });
+  // Also check API-fetched cached papers
+  Object.values(dashCache).forEach(p=>{
+    if(p.ms_available&&(!ss||p.subject_id===ss)&&(!st||p.type===st))avail.push(p);
+  });
+  avail=[...new Map(avail.map(p=>[p.id,p])).values()];
+
+  if(!avail.length){document.getElementById('ms-content').innerHTML='<div style="text-align:center;padding:2.5rem;color:var(--mu)">⏳ ලකුණු ක්‍රම නොමැත.</div>';return;}
+  // Render basic info cards with links to full view
+  document.getElementById('ms-content').innerHTML=avail.map(p=>`
+    <div class="card" style="padding:1rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.65rem">
+      <div>
+        <div style="font-size:13px;font-weight:700">${p.title||p.name}</div>
+        <div style="font-size:10.5px;color:var(--mu);margin-top:2px">${p.type==='srp'?'⭐ SRP':'📝 Daily'} · ${p.grade||gradeNum} ශ්‍රේ · ලකුණු ක්‍රමය</div>
+      </div>
+      <button class="btn btn-g" style="font-size:11.5px;padding:7px 14px" onclick="openMSPaper('${p.id}')">📖 ලකුණු ක්‍රමය</button>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RANKINGS — wired to /papers/:id/rankings
+// ═══════════════════════════════════════════════════════════════════
+let rankPaperId = null;
+
+async function loadRankings() {
+  gp('rankings');
+  renderRank();
+}
+
+async function renderRank() {
+  const type=document.getElementById('rk-type').value;
+  const subjId=document.getElementById('rk-subj').value;
+  const grade=document.getElementById('rk-grade').value;
+  const dist=document.getElementById('rk-dist').value;
+  const tot=type==='srp'?30:10;
+
+  // Find a matching paper from cache for real API call
+  const matchPaper = Object.values(dashCache).find(p=>p.type===type&&p.subject_id===subjId);
+  let lbData=null, myRank=null;
+  if(matchPaper && matchPaper.id && !matchPaper.id.startsWith('d') && !matchPaper.id.startsWith('srp1')) {
+    try {
+      const data = await api('GET',`/papers/${matchPaper.id}/rankings?${dist?'district='+dist+'&':''}page=1&limit=50`);
+      lbData  = data.rows;
+      myRank  = data.myRank;
+    } catch(_){}
+  }
+
+  // Fallback demo leaderboard
+  if(!lbData) {
+    lbData=[
+      {name:'අමාය සිල්වා',district:'gampaha',score:28,time_taken_secs:872,national_rank:1},
+      {name:'හසිත',district:'colombo',score:27,time_taken_secs:1125,national_rank:2},
+      {name:'රවීන්',district:'kandy',score:27,time_taken_secs:1147,national_rank:3},
+      {name:'නිමාශා',district:'galle',score:26,time_taken_secs:1201,national_rank:4},
+      {name:'දිලංක',district:'matara',score:25,time_taken_secs:1335,national_rank:5},
+      {name:'තිළිණි',district:'kegalle',score:24,time_taken_secs:1440,national_rank:6},
+      {name:'සහන්',district:'kurunegala',score:23,time_taken_secs:1533,national_rank:7},
+      {name:'ඉසුරි',district:'ratnapura',score:22,time_taken_secs:1608,national_rank:8},
+      {name:'චමත්',district:'hambantota',score:21,time_taken_secs:1682,national_rank:9},
+      {name:'බුද්ධික',district:'kalutara',score:20,time_taken_secs:1750,national_rank:10},
+    ];
+    myRank={national_rank:12,district_rank:3,score:Math.floor(tot*.8),time_taken_secs:1200};
+  }
+
+  const pc=(Math.floor(Math.random()*2000)+600).toLocaleString();
+  document.getElementById('my-rank-section').innerHTML=`
+    <div class="my-rank"><div class="my-rank-badge">#${myRank?.national_rank||'—'}</div>
+    <div style="flex:1"><div style="font-size:12px;font-weight:600;margin-bottom:2px">${APP.user?.name||'Student'} ශ්‍රේණිය</div>
+    <div style="font-size:1.35rem;font-weight:700;color:var(--g)">#${myRank?.national_rank||'—'} <span style="font-size:11px;color:var(--mu)">/ ${pc}</span></div>
+    <div style="font-size:11px;color:var(--mu);margin-top:2px">ලකුණු: ${myRank?.score||'—'}/${tot} · දිස්ත්‍රික්: #${myRank?.district_rank||'—'}</div></div>
+    <div style="text-align:right"><div style="font-size:1.9rem;font-weight:700;color:var(--ok)">${myRank?.score||'—'}</div><div style="font-size:9.5px;color:var(--mu)">ලකුණු</div></div></div>`;
+
+  const top3=lbData.slice(0,3);
+  const cols=[['rgba(176,176,176,0.07)','rgba(176,176,176,0.2)','#b0b0b0'],['rgba(201,168,76,0.08)','rgba(201,168,76,0.28)','var(--g)'],['rgba(205,127,50,0.07)','rgba(205,127,50,0.2)','#cd7f32']];
+  const medals=['🥈','🥇','🥉'], order=[1,0,2];
+  const fmt=(s)=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  document.getElementById('podium-section').innerHTML=order.map(i=>top3[i]?`
+    <div class="pi"><div class="pc2" style="background:${cols[i][0]};border-color:${cols[i][1]};${i===0?'padding-top:1.3rem':''}">
+      <div class="pav" style="background:${cols[i][0]};color:${cols[i][2]}">${(top3[i].name||'').substring(0,2)}</div>
+      <div class="pn">${top3[i].name}</div><div class="psc">${top3[i].score}/${tot}·${top3[i].district||'—'}</div>
+      <div class="pr" style="color:${cols[i][2]}">${i+1}</div></div>
+      <div class="pb2" style="background:${cols[i][0]}">${medals[i]}</div></div>`:``).join('');
+  document.getElementById('lb-rows').innerHTML=lbData.slice(3).map((r,i)=>`
+    <div class="lb-row"><div class="lb-r">${(r.national_rank||i+4)}</div>
+    <div class="av" style="background:rgba(79,127,232,0.15);color:var(--ac)">${(r.name||'').substring(0,2)}</div>
+    <div style="flex:1"><div class="lb-n">${r.name}</div><div class="lb-d">${r.district||'—'}</div></div>
+    <div class="lb-s">${r.score}/${tot}</div>
+    <div class="lb-t">${fmt(r.time_taken_secs||0)}</div></div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FORUM — wired to /forum/threads
+// ═══════════════════════════════════════════════════════════════════
+let forumFilter={subject:'',status:''};
+
+async function renderThreads(f='all') {
+  const el=document.getElementById('qa-list');
+  el.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--mu)">📡 ලබාගනිමින්...</div>';
+  let threads=[];
+  try {
+    const params=[];
+    if(f!=='all'&&f!=='resolved'&&f!=='pending') params.push('subject='+f);
+    if(f==='resolved'||f==='pending') params.push('status='+f);
+    const data = await api('GET','/forum/threads'+(params.length?'?'+params.join('&'):''));
+    threads = data.threads||[];
+  } catch(_) {
+    // Demo threads
+    threads=DEMO_THREADS.filter(t=>f==='all'||t.f===f||t.st===f).map(t=>({
+      id:t.id,subject_id:t.f,subject_name:t.sub,title:t.ti,status:t.st,view_count:t.v,reply_count:t.r,
+      created_at:new Date(Date.now()-Math.random()*86400000*7).toISOString(),
+      author_name:t.av,image_urls:[],
+    }));
+  }
+  const sc={m:'#C9A84C',ph:'#4F7FE8',ch:'#2EC4B6',bi:'#4CAF7D',ac:'#A78BFA',ec:'#FB923C'};
+  el.innerHTML=threads.map(t=>`<div class="thread" onclick="openThread('${t.id}')">
+    <div class="th-top"><div><div class="th-subj" style="color:${sc[t.subject_id]||'#aaa'}">${t.subject_name||t.subject_id}</div><div class="th-ti">${t.title}</div></div>
+    <span class="bdg ${t.status==='resolved'?'b-ok':'b-wn'}">${t.status==='resolved'?'✓ විසඳිණ':'⏳ පොරොත්තු'}</span></div>
+    <div class="th-meta"><span>👁 ${t.view_count||0}</span><span>💬 ${t.reply_count||0}</span><span>${timeAgo(t.created_at)}</span>
+    <div class="av" style="background:rgba(79,127,232,0.15);color:var(--ac)">${(t.author_name||'??').substring(0,2)}</div></div>
+  </div>`).join('');
+}
+
+async function openThread(id) {
+  gp('thread');
+  document.getElementById('td-content').innerHTML='<div style="text-align:center;padding:2rem;color:var(--mu)">📡 ලබාගනිමින්...</div>';
+  let thread=null, replies=[];
+  try {
+    const data = await api('GET',`/forum/threads/${id}`);
+    thread=data.thread; replies=data.replies||[];
+  } catch(_) {
+    const demo=DEMO_THREADS.find(t=>String(t.id)===String(id));
+    if(!demo){document.getElementById('td-content').innerHTML='Thread not found';return;}
+    thread={id:demo.id,subject_name:demo.sub,title:demo.ti,body:demo.body,status:demo.st,view_count:demo.v,reply_count:demo.r};
+    replies=demo.ans.map(a=>({id:Math.random(),body:a.t,is_verified:a.v,name:a.n,role:a.role}));
+  }
+  const sc={m:'#C9A84C',ph:'#4F7FE8',ch:'#2EC4B6',bi:'#4CAF7D',ac:'#A78BFA',ec:'#FB923C'};
+  const subjC=sc[thread.subject_id]||'#aaa';
+  document.getElementById('td-content').innerHTML=`
+    <div class="td-card">
+      <div class="th-subj" style="color:${subjC};font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">${thread.subject_name||''}</div>
+      <div style="font-size:1.05rem;font-weight:700;margin-bottom:.8rem;line-height:1.5">${thread.title}</div>
+      <div class="body-txt" style="white-space:pre-line">${thread.body||''}</div>
+      <div class="th-meta" style="margin-top:.8rem"><span>👁 ${thread.view_count||0}</span><span>💬 ${replies.length}</span>
+        <span class="bdg ${thread.status==='resolved'?'b-ok':'b-wn'}">${thread.status==='resolved'?'✓ විසඳිණ':'⏳ පොරොත්තු'}</span></div>
+    </div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin-bottom:.55rem;max-width:760px">පිළිතුරු ${replies.length}ක්</div>
+    ${replies.map(r=>`<div class="ans-card ${r.is_verified?'ver':''}">
+      ${r.is_verified?'<div class="ver-lbl">✓ Verified</div>':''}
+      <div class="auth-row"><div class="av" style="background:${r.is_verified?'rgba(61,175,114,0.2)':'rgba(79,127,232,0.15)'};color:${r.is_verified?'var(--ok)':'var(--ac)'};width:32px;height:32px;font-size:10px">${(r.name||r.author_name||'?').substring(0,2)}</div>
+      <div><div class="auth-n">${r.name||r.author_name||'Student'}</div><div class="auth-r">${r.role||'Student'}</div></div></div>
+      <div class="body-txt">${r.body}</div></div>`).join('')}
+    <div class="reply-box">
+      <div style="font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin-bottom:.45rem">Reply</div>
+      <textarea class="reply-inp" rows="3" placeholder="ඔබේ පිළිතුර..." id="reply-body-${id}"></textarea>
+      <button class="btn btn-g" style="margin-top:.6rem;font-size:12px" onclick="postReply('${id}')">Post Reply</button>
+    </div>`;
+}
+
+async function postReply(threadId) {
+  const body=document.getElementById('reply-body-'+threadId)?.value.trim();
+  if(!body){showToast('Reply body cannot be empty');return;}
+  try {
+    await api('POST',`/forum/threads/${threadId}/replies`,{body});
+    showToast('Reply posted!');
+    openThread(threadId);
+  } catch(err) { showToast('Error: '+err.message); }
+}
+
+async function postQuestion() {
+  const modal=document.getElementById('mo-newq');
+  const subj=modal.querySelector('select')?.value||'m';
+  const title=modal.querySelector('input[placeholder*="title"]')?.value?.trim();
+  const body=modal.querySelector('textarea')?.value?.trim();
+  const formData=new FormData();
+  formData.append('subject_id',subj);
+  formData.append('title',title||'Question');
+  formData.append('body',body||'...');
+  try {
+    await api('POST','/forum/threads',formData,true);
+    showToast('ප්‍රශ්නය සාර්ථකව!');
+    cm('newq');
+    renderThreads('all');
+  } catch(err) { showToast('Error: '+(err.message||'Please try again')); cm('newq'); }
+}
+
+function fqa(el,f){document.querySelectorAll('.spill').forEach(p=>p.classList.remove('on'));el.classList.add('on');renderThreads(f);}
+
+// ═══════════════════════════════════════════════════════════════════
+// PAST PAPERS — wired to /past-papers
+// ═══════════════════════════════════════════════════════════════════
+const DEMO_TOPICS={
+  m:['ශ්‍රේණි','අවකලනය','අනුකලනය','දෛශික','සංකීර්ණ','ත්‍රිකෝණ','ප්‍රස්තාර','සංභාවිතය'],
+  ph:['ගතිකය','ශක්තිය','තරංග','ප්‍රකාශ','ෙවද්‍යුත්','ගෑස්','නවීන','කාලීකය'],
+  ch:['ස්ථිතිකලා','සංස්ථා','කාබනික','ලෝහ','විද්‍යුත්','ඖෂධ','pH'],
+  bi:['සෛල','ජාන','පරිණාමය','ශාක','සතුන්','ජෛව','ජීවය'],
+  ac:['සමීකරණය','ජර්නල්','ශේෂ','ලාභ','ස්ථාවර','හවුල්','සමාගම්'],
+  ec:['ඉල්ලුම','නිෂ්පාදන','GDP','ශේෂය','මූල්‍ය','ශ්‍රී ලංකා','ජාත්‍යන්තර'],
+};
+const YEARS=[2024,2023,2022,2021,2020,2019,2018,2017,2016,2015];
+
+async function loadPastPapers() {
+  if(!isLoggedIn()){document.getElementById('pp-content').innerHTML='<div style="text-align:center;padding:2.5rem;color:var(--mu)">ලියාපදිංචිය කරන්න.</div>';return;}
+  const sf=document.getElementById('ppf-stream')?.value||'';
+  const ss=document.getElementById('ppf-subj')?.value||'';
+  const sg=document.getElementById('ppf-grade')?.value||'';
+  const sy=document.getElementById('ppf-year')?.value||'';
+
+  document.getElementById('pp-content').innerHTML='<div style="text-align:center;padding:2rem;color:var(--mu)">📡 Past papers ලබාගනිමින්...</div>';
+
+  let tree=[];
+  try {
+    const params=[];
+    if(ss)params.push('subject='+ss);
+    if(sg)params.push('grade='+sg);
+    if(sy)params.push('year='+sy);
+    tree = await api('GET','/past-papers'+(params.length?'?'+params.join('&'):''));
+  } catch(_) {
+    // Build demo tree from STREAMS + DEMO_TOPICS
+    const st2=STREAMS[APP.user.stream]||STREAMS.phy;
+    const subjects=st2.subjects.filter(s=>!ss||s.id===ss);
+    tree=subjects.map(sub=>({
+      subject_id:sub.id,subject_name:sub.n,
+      topics:(DEMO_TOPICS[sub.id]||DEMO_TOPICS.ec).map((tn,ti)=>({
+        topic_id:ti+1,topic_name:tn,
+        years:(sy?[parseInt(sy)]:YEARS).map(yr=>({
+          id:`pp_${sub.id}_${ti}_${yr}`,year:yr,grade:sg||'13',
+          mcqCount:3,essayCount:2,mcqMarks:6,essayMarks:25,
+          markingSchemeAvailable:yr<=2023,msMcqUploaded:yr<=2022,
+          hasEssayPdf:true,hasMsEssay:yr<=2022,
+        }))
+      }))
+    }));
+  }
+
+  renderPPTree(tree);
+}
+
+function renderPP() { loadPastPapers(); }
+
+function renderPPTree(tree) {
+  if(!tree.length){document.getElementById('pp-content').innerHTML='<div style="text-align:center;padding:2rem;color:var(--mu)">ඔබේ ධාරාවේ Past papers නොමැත.</div>';return;}
+  const st2=STREAMS[APP.user.stream]||STREAMS.phy;
+  let html='';
+  tree.forEach(subj=>{
+    html+=`<div style="margin-bottom:2.5rem">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:.85rem;padding-bottom:.55rem;border-bottom:1px solid var(--bd)">
+        <div style="width:9px;height:9px;border-radius:50%;background:${st2.color}"></div>
+        <div style="font-size:14px;font-weight:700">${subj.subject_name}</div>
+        <div style="font-size:10.5px;color:var(--mu)">${subj.topics?.length||0} topics · Topic-wise restructured · 2015–2024</div>
+      </div>`;
+    (subj.topics||[]).forEach(topic=>{
+      const tId=`tp_${subj.subject_id}_${topic.topic_id}`;
+      const totalMCQ=(topic.years||[]).reduce((s,y)=>s+(y.mcqCount||0),0);
+      const totalEssay=(topic.years||[]).reduce((s,y)=>s+(y.essayCount||0),0);
+      html+=`<div class="topic-section">
+        <div class="topic-hdr" onclick="toggleTopic('${tId}')">
+          <div class="topic-dot" style="background:${st2.color}"></div>
+          <div class="topic-name">${topic.topic_name}</div>
+          <div class="topic-meta">MCQ ${totalMCQ} · Essay ${totalEssay} · ${(topic.years||[]).length} years</div>
+          <div class="topic-chev" id="chev_${tId}">▼</div>
+        </div>
+        <div class="topic-body" id="body_${tId}">
+          ${(topic.years||[]).map(yr=>`<div class="year-row">
+            <div class="yr-label">${yr.year}</div>
+            <div class="yr-items">
+              <div class="pp-btn pp-mcq" onclick="openPPMCQ('${yr.id}','${subj.subject_id}','${topic.topic_name}',${yr.year})">📝 MCQ ${yr.mcqCount}ක්</div>
+              <div class="pp-btn pp-essay" onclick="openPPEssay('${yr.id}','${subj.subject_name}','${topic.topic_name}',${yr.year},${yr.hasEssayPdf})">📄 Essay ${yr.essayCount}ක් PDF</div>
+              ${yr.markingSchemeAvailable
+                ?`<div class="pp-btn pp-ans" onclick="openPPAns('${yr.id}','${subj.subject_name}','${topic.topic_name}',${yr.year})">✅ Marking Scheme</div>`
+                :`<div class="pp-btn" style="opacity:.4;cursor:not-allowed;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.1);color:var(--mu)">⏳ Scheme</div>`}
+            </div>
+            <div class="yr-marks">MCQ ${yr.mcqMarks}pts · Essay ${yr.essayMarks}pts</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('pp-content').innerHTML=html;
+}
+
+function toggleTopic(id){
+  const body=document.getElementById('body_'+id),chev=document.getElementById('chev_'+id);
+  if(!body)return;
+  const open=body.classList.toggle('open');
+  chev.classList.toggle('open',open);
+}
+
+async function openPPMCQ(ppId, subjId, topic, year) {
+  gp('ppview');
+  document.getElementById('ppview-content').innerHTML='<div style="text-align:center;padding:2rem;color:var(--mu)">📡 ලබාගනිමින්...</div>';
+  let qs=[], answersAvailable=false;
+  try {
+    const data=await api('GET',`/past-papers/${ppId}/questions`);
+    qs=data.questions||[]; answersAvailable=data.answersAvailable||false;
+  } catch(_) {
+    // Demo MCQs
+    const base=DEMO_QDB[subjId]||DEMO_QDB.ec;
+    qs=base.slice(0,3).map((q,i)=>({
+      id:i+1,sort_order:i+1,question_text:`[${year}] ${q.t}`,
+      option_a:q.o[0],option_b:q.o[1],option_c:q.o[2],option_d:q.o[3],
+      correct_option:null, // hidden until MS uploaded
+    }));
+    answersAvailable=year<=2022;
+    if(answersAvailable) qs.forEach((q,i)=>{q.correct_option=['A','B','C','D'][base[i]?.a||0];});
+  }
+
+  let ppAns={}, ppLocked=false;
+  const render=()=>{
+    document.getElementById('ppview-content').innerHTML=`
+      <div class="ppx-hdr">
+        <div class="ppx-breadcrumb">${subjId.toUpperCase()} › ${topic}</div>
+        <div class="ppx-title">📝 MCQ — ${topic} (${year})</div>
+        <div class="ppx-meta"><span>ප්‍රශ්න ${qs.length}ක්</span><span>${year} A/L</span><span>Topic-wise restructured</span></div>
+      </div>
+      ${qs.map((q,i)=>`<div class="pp-qcard">
+        <div class="pp-qnum">ප්‍රශ්නය ${i+1}</div>
+        <div class="pp-qtxt">${q.question_text}</div>
+        <div class="pp-opts">${[q.option_a,q.option_b,q.option_c,q.option_d].map((o,j)=>{
+          const letter='ABCD'[j];
+          const isSel=ppAns[i]===j;
+          const isCor=ppLocked&&q.correct_option===letter;
+          const isWr=ppLocked&&isSel&&!isCor;
+          return `<div class="pp-opt ${isCor?'pp-cor':isWr?'pp-wr':isSel?'pp-sel':''} ${ppLocked?'pp-lk':''}" onclick="${ppLocked?'':'ppSel('+i+','+j+',this)'}">
+            <div class="pp-ol">${letter}</div><span>${o}</span>
+            ${isCor?'<span style="font-size:10px;color:var(--ok);font-weight:700">✓</span>':''}
+            ${isWr?'<span style="font-size:10px;color:var(--dn)">✗</span>':''}
+          </div>`;
+        }).join('')}</div>
+      </div>`).join('')}
+      <div style="display:flex;gap:.65rem;margin-top:1rem;flex-wrap:wrap">
+        <button class="btn btn-o" onclick="gp('pastpapers')">← ආපසු</button>
+        ${!ppLocked?`<button class="btn btn-g" id="ppchk" onclick="ppCheck()">Answers ${answersAvailable?'Check':'(Upload pending)'}</button>`
+          :`<button class="btn btn-o" style="pointer-events:none">✓ Checked — ${Object.values(ppAns).filter((_,i)=>q=>ppAns[i]!=null).length}/${qs.length}</button>`}
+      </div>`;
+    window.ppSel=(qi,oi,el)=>{ ppAns[qi]=oi; render(); };
+    window.ppCheck=()=>{
+      if(!answersAvailable){showToast('⏳ Marking scheme not yet uploaded');return;}
+      ppLocked=true; render();
+      let c=0; qs.forEach((q,i)=>{if(q.correct_option&&ppAns[i]!=null&&'ABCD'[ppAns[i]]===q.correct_option)c++;});
+      showToast(`ලකුණු: ${c}/${qs.length} (${Math.round(c/qs.length*100)}%)`);
+    };
+  };
+  render();
+}
+
+function openPPEssay(ppId, subjName, topic, year, hasPdf) {
+  gp('pdfview');
+  const pdfUrl = `${BASE_URL}/past-papers/${ppId}/essay-pdf`;
+  document.getElementById('pdfview-content').innerHTML=`
+    <div class="ppx-hdr">
+      <div class="ppx-breadcrumb">${subjName} › ${topic}</div>
+      <div class="ppx-title">📄 Essay — ${topic} (${year})</div>
+      <div class="ppx-meta"><span>${year} A/L</span><span>PDF Format</span><span>Topic-wise restructured</span></div>
+    </div>
+    <div class="pdf-viewer">
+      <div class="pdf-icon">📄</div>
+      <div class="pdf-title">${subjName} — ${topic} (${year}) Essay Questions</div>
+      <div class="pdf-sub">ව්‍යුහගත essay questions PDF format-ල.<br/>Topic: <span style="color:var(--g)">${topic}</span></div>
+      <div class="pdf-actions">
+        ${hasPdf
+          ?`<a href="${pdfUrl}" target="_blank" class="btn btn-g">⬇️ PDF Download / View</a>`
+          :`<button class="btn btn-o" style="opacity:.5;cursor:not-allowed">⏳ PDF upload pending</button>`}
+        <button class="btn btn-o" onclick="gp('pastpapers')">← ආපසු</button>
+      </div>
+    </div>`;
+}
+
+function openPPAns(ppId, subjName, topic, year) {
+  gp('pdfview');
+  const msUrl = `${BASE_URL}/past-papers/${ppId}/marking-scheme-pdf`;
+  document.getElementById('pdfview-content').innerHTML=`
+    <div class="ppx-hdr">
+      <div class="ppx-breadcrumb">${subjName} › ${topic}</div>
+      <div class="ppx-title">✅ Marking Scheme — ${topic} (${year})</div>
+      <div class="ppx-meta"><span>MCQ + Essay Scheme</span><span>${year} A/L</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+      <div class="card" style="padding:1.1rem">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu);margin-bottom:.75rem">MCQ Answer Key</div>
+        <div style="font-size:12px;color:var(--mu);padding:1rem;background:var(--d2);border-radius:var(--rs);text-align:center">
+          <div style="font-size:1.5rem;margin-bottom:.35rem">🔑</div>
+          MCQ answers available<br/>
+          <button class="btn btn-g" style="margin-top:.75rem;font-size:11.5px;padding:7px 14px" onclick="openPPMCQwithAnswers('${ppId}','${topic}',${year})">View with Answers</button>
+        </div>
+      </div>
+      <div class="card" style="padding:1.1rem">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu);margin-bottom:.75rem">Essay Marking Scheme PDF</div>
+        <div class="pdf-viewer" style="min-height:180px;padding:1.25rem">
+          <div style="font-size:1.75rem">📋</div>
+          <div style="font-size:12.5px;font-weight:700">Essay Scheme PDF</div>
+          <div style="font-size:11.5px;color:var(--mu);text-align:center">Model answers + mark allocation</div>
+          <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap;justify-content:center">
+            <a href="${msUrl}" target="_blank" class="btn btn-g" style="font-size:11px;padding:6px 13px">⬇️ Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-o" onclick="gp('pastpapers')">← Past Papers</button>`;
+}
+
+function openPPMCQwithAnswers(ppId, topic, year) {
+  // Re-open MCQ viewer — API will return correct_option if ms_mcq_uploaded=TRUE
+  const subjId = APP.user?.stream ? (STREAMS[APP.user.stream]?.subjects?.[0]?.id || 'm') : 'm';
+  openPPMCQ(ppId, subjId, topic, year);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DEMO THREAD DATA
+// ═══════════════════════════════════════════════════════════════════
+const DEMO_THREADS=[
+  {id:1,sub:'ඒකාබද්ධ ගණිතය',sc:'#C9A84C',f:'m',ti:'∫(sin²x)dx — සීමාව ළඟ',st:'resolved',av:'අ.සි',v:142,r:8,t:'2h',body:'0→π සීමා නිවැරදි නොලැ.',ans:[{n:'ගුරු කේ.',role:'Certified Maths',v:true,t:'x/2−sin2x/4+C → π/2.'},{n:'නෙත්මි',role:'Student',v:false,t:'Chain rule!'}]},
+  {id:2,sub:'භෞතිකය',sc:'#4F7FE8',f:'ph',ti:'EMF max — parallel not perpendicular',st:'resolved',av:'ක.වි',v:88,r:5,t:'4h',body:'EMF=−dΦ/dt.',ans:[{n:'ගුරු රණ.',role:'Certified Physics',v:true,t:'EMF ← dΦ/dt. Parallel: rate max.'}]},
+  {id:3,sub:'රසායනය',sc:'#2EC4B6',f:'ch',ti:'SN2 stereochemistry',st:'pending',av:'ර.පේ',v:61,r:2,t:'6h',body:'Walden inversion always?',ans:[{n:'සහන්',role:'Student',v:false,t:'Always inversion.'}]},
+  {id:4,sub:'ගිණුම්',sc:'#A78BFA',f:'ac',ti:'Capital vs Revenue A/L',st:'resolved',av:'ම.ෆ',v:230,r:12,t:'1d',body:'Teacher: long-term asset.',ans:[{n:'ගුරු ජය.',role:'Certified Accounts',v:true,t:'Capital=long-term. Revenue=daily.'}]},
+  {id:5,sub:'ජීව',sc:'#4CAF7D',f:'bi',ti:'Meiosis 4 cells',st:'pending',av:'නා.ද',v:74,r:3,t:'1d',body:'Molecular reason?',ans:[{n:'ඉසුරි',role:'Student',v:false,t:'Crossing over + 2^23.'}]},
+  {id:6,sub:'ආර්ථිකය',sc:'#FB923C',f:'ec',ti:'GDP misleading — Sri Lanka 2022',st:'resolved',av:'ච.ජේ',v:195,r:9,t:'2d',body:'Income distribution.',ans:[{n:'ගුරු පෙරේ.',role:'Certified Economics',v:true,t:'Gini, non-market, 2022 70%+ inflation.'}]},
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════
+function timeAgo(iso) {
+  if(!iso) return '—';
+  const secs=Math.floor((Date.now()-new Date(iso))/1000);
+  if(secs<60) return secs+'s';
+  if(secs<3600) return Math.floor(secs/60)+'m';
+  if(secs<86400) return Math.floor(secs/3600)+'h';
+  return Math.floor(secs/86400)+'d';
+}
+
+function districtMap(si) {
+  const m={'කොළඹ':'colombo','ගම්පහ':'gampaha','කළුතර':'kalutara','මහනුවර':'kandy',
+            'ගාල්ල':'galle','මාතර':'matara','රත්නපුර':'ratnapura','කුරුණෑගල':'kurunegala',
+            'ජාෆ්නා':'jaffna','හම්බන්':'hambantota'};
+  return m[si]||'colombo';
+}
+
+function setLoadingBtn(id, loading, text) {
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.disabled=loading;
+  if(text) el.textContent=text;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ROUTING
+// ═══════════════════════════════════════════════════════════════════
+const NM={home:'home',dashboard:'dashboard',exam:'dashboard',result:'dashboard',
+          marking:'marking',rankings:'rankings',qa:'qa',thread:'qa',
+          pastpapers:'pastpapers',ppview:'pastpapers',pdfview:'pastpapers'};
+
+function gp(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  document.querySelectorAll('.na').forEach(a=>a.classList.remove('active'));
+  const el=document.getElementById('n-'+(NM[id]||id));if(el)el.classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='rankings'){gp._rk=true; renderRank();}
+  if(id==='qa') renderThreads('all');
+  if(id==='marking'&&!document.getElementById('ms-content').innerHTML) renderMS();
+}
+function om(id){document.getElementById('mo-'+id).classList.add('open');}
+function cm(id){document.getElementById('mo-'+id).classList.remove('open');}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.style.opacity='1';setTimeout(()=>t.style.opacity='0',3500);}
+document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOT — restore session if token exists
+// ═══════════════════════════════════════════════════════════════════
+(async function boot() {
+  if(APP.token && APP.user) {
+    // Verify token is still valid
+    try {
+      const me = await api('GET','/auth/me');
+      Object.assign(APP.user, me);
+      localStorage.setItem('kw_user', JSON.stringify(APP.user));
+    } catch(err) {
+      if(err.status===401) { clearAuth(); return; }
+      // Network error — proceed with cached user in demo mode
+    }
+    finishLogin(APP.user);
+  }
+  // Fix register modal submit button ID
+  const regBtn=document.querySelector('#mo-reg .btn-g');
+  if(regBtn) regBtn.id='reg-submit';
+  const phoneInput=document.querySelector('#mo-reg input[placeholder*="07X"]');
+  if(phoneInput) phoneInput.id='reg-phone';
+})();
+</script>
+</body>
+</html>
