@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ─── Design Tokens ──────────────────────────────────────────────────────── */
+@theme {
+  /* ── Primary palette — Periwinkle / Indigo / Aqua ── */
+  --color-gold: #8b90f0;              /* Periwinkle — primary brand */
+  --color-gold-dark: #6f73d6;         /* Indigo — deep/hover variant */
+  --color-gold-light: #c9ccff;        /* Soft lavender */
+  --color-gold-bg: rgba(139, 144, 240, 0.10);
+  --color-gold-border: rgba(139, 144, 240, 0.25);
+
+  /* ── Backgrounds — light / minimal ── */
+  --color-dark: #ffffff;              /* Primary bg — pure white */
+  --color-dark-2: #f8f9ff;           /* Secondary bg — whisper of lavender */
+  --color-dark-3: #eef0ff;           /* Pale lavender — tertiary bg */
+  --color-surface: #ffffff;           /* Card / panel surface */
+  --color-surface-2: #f1f2ff;        /* Tint panel bg */
+  --color-border-dim: #e8e8f4;       /* Divider / subtle border */
+
+  /* ── Text ── */
+  --color-text-primary: #6f73d6;      /* Indigo — headings & UI labels */
+  --color-text-muted: #444444;        /* Body text — neutral grey-purple */
+
+  /* ── Accent ── */
+  --color-accent: #6cd4da;            /* Aqua */
+  --color-accent-2: #a9adf5;          /* Light periwinkle */
+
+  /* ── Semantic ── */
+  --color-success: #3DAF72;
+  --color-danger: #E25C5C;
+  --color-warning: #E8A020;
+
+  --radius-base: 12px;
+  --radius-sm: 7px;
+  --font-sans: var(--font-noto-sans-sinhala), var(--font-dm-sans), system-ui, sans-serif;
+}
+
+/* ─── Base Styles ─────────────────────────────────────────────────────────── */
+body {
+  background: var(--color-dark);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  @apply text-[13px] leading-relaxed overflow-x-hidden;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-dark-2);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-dim);
+  border-radius: 3px;
+}
+
+/* ─── Animations ──────────────────────────────────────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s infinite;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ─── Navbar Glass ────────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ─── Primary Gradient ────────────────────────────────────────────────────── */
+.gradient-gold {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
+}
+
+/* ─── Hero Background ────────────────────────────────────────────────────── */
+.hero-bg {
+  background:
+    radial-gradient(ellipse 75% 55% at 50% 0%, rgba(139, 144, 240, 0.13), transparent 68%),
+    radial-gradient(ellipse 45% 35% at 85% 85%, rgba(108, 212, 218, 0.08), transparent 65%);
+}
+
+.hero-grid {
+  opacity: 0.04;
+  background-image:
+    linear-gradient(var(--color-gold-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-gold-border) 1px, transparent 1px);
+  background-size: 56px 56px;
+}

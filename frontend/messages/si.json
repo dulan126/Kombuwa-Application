@@ -1,0 +1,91 @@
+{
+  "nav": {
+    "home": "මුල් පිටුව",
+    "papers": "ප්‍රශ්න පත්‍ර",
+    "marking": "ලකුණු ක්‍රමය",
+    "rankings": "ශ්‍රේණිගත",
+    "forum": "ප්‍රශ්නෝත්තර",
+    "pastPapers": "Past Papers",
+    "register": "ලියාපදිංචිය",
+    "login": "ඇතුල් වීම",
+    "logout": "ඉවත් වීම"
+  },
+  "hero": {
+    "badge": "ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ වේදිකාව — 2026",
+    "title": "ඔබේ {gold} ජය ගන්න",
+    "goldText": "අ/පෙළ",
+    "subtitle": "Daily ප්‍ර 10 (10 මිනි) · SRP ප්‍ර 30 (30 මිනි) · ශ්‍රේණිය + ධාරාව paper access · Real-time ලකුණු · ලකුණු ක්‍රමය ඒ දිනෙ",
+    "registerBtn": "ලියාපදිංචිය",
+    "demoBtn": "Demo — ඇතුල් වන්න"
+  },
+  "stats": {
+    "students": "ක්‍රියාශීලී සිසුන්",
+    "daily": "ප්‍ර 10 · 10 මිනිත්තු",
+    "srp": "ප්‍ර 30 · 30 මිනිත්තු",
+    "streams": "ධාරා · Grade 12 & 13"
+  },
+  "features": {
+    "tag": "Platform Features",
+    "title": "A සාමාර්ථ ලබා ගැනීමට ඔබට අවශ්‍ය සියල්ල",
+    "dailyMCQ": "දෛනික MCQ",
+    "dailyMCQDesc": "ප්‍ර 10, 10 මිනිත්තු timer. Real-time: ලකුණු පමණ. Correct answers ඒ දිනෙ upload කෙරේ.",
+    "srpTitle": "SRP — Weekly Special Ranking",
+    "srpDesc": "ප්‍ර 30, 30 මිනිත්තු. Island-wide ranking. System-wide specially highlighted. ලකුණු ක්‍රමය ඒ දිනෙ.",
+    "markingTitle": "ලකුණු ක්‍රමය",
+    "markingDesc": "ප්‍රශ්නනය ශේෂ දිනෙ upload. Subject + Grade + Type filter. ඔබේ attempt + correct answers.",
+    "rankingsTitle": "Grade-wise Rankings",
+    "rankingsDesc": "Daily + SRP separate. Grade 12 / 13 separate. National + District rank.",
+    "gradeAccessTitle": "ශ්‍රේණිය Access",
+    "gradeAccessDesc": "Grade 12 → 12 & 13 papers. Grade 13 → 12 & 13 papers. Papers uploaded per grade separately.",
+    "forumTitle": "Q&A Forum",
+    "forumDesc": "Photo questions. Verified teacher answers. Resolved/Pending. Subject filter."
+  },
+  "streams": {
+    "tag": "Subject Streams",
+    "title": "ධාරාව + ශ්‍රේණිය — ඔබේ subjects auto-filtered"
+  },
+  "cta": {
+    "tag": "Register Now",
+    "title": "දූපතේ ඉහළම ස්ථානය ලබා ගැනීමට සූදානමිද?",
+    "subtitle": "ධාරාව + ශ්‍රේණිය select — ඔබේ subjects auto-filtered.",
+    "btn": "ලියාපදිංචිය — Free"
+  },
+  "exam": {
+    "question": "ප්‍රශ්නය",
+    "answers": "පිළිතුරු",
+    "remaining": "ක් ඉතිරිව",
+    "allDone": "සියල්ල ✓",
+    "submit": "ඉදිරිපත් කරන්න ✓",
+    "prev": "← පෙර",
+    "next": "ඊළඟ →",
+    "confirmTitle": "ඉදිරිපත් කරන්නද?",
+    "confirmMsg": "ඉදිරිපත් කළ පසු වෙනස් කළ නොහැකිය.",
+    "unanswered": "ක් නොදෙන ලදී. ඉදිරිපත් කළ පසු වෙනස් නොකළ හැකිය.",
+    "yes": "ඔව් — ඉදිරිපත් කරන්න",
+    "no": "නැත",
+    "timeUp": "කාලය ඉකුත් විය!",
+    "autoSubmit": "ස්වයංක්‍රීයව ඉදිරිපත් කෙරිණ.",
+    "viewResults": "ප්‍රතිඵල බලන්න"
+  },
+  "results": {
+    "correct": "නිවැරදි",
+    "wrong": "වැරදි",
+    "skipped": "මඟ",
+    "rank": "ශ්‍රේණිය",
+    "national": "ජාතික",
+    "district": "දිස්ත්‍රික්",
+    "participants": "සහභාගිවන්",
+    "markingPending": "ලකුණු ක්‍රමය — ශේෂ දිනෙ upload",
+    "markingPendingDesc": "Real-time: ලකුණු පමණ. Correct answers ඒ දිනෙ \"ලකුණු ක්‍රමය\" section-ල upload."
+  },
+  "common": {
+    "loading": "ලබාගනිමින්...",
+    "backToPapers": "← ප්‍රශ්න පත්‍ර",
+    "back": "← ආපසු",
+    "grade12": "12 ශ්‍රේණිය",
+    "grade13": "13 ශ්‍රේණිය",
+    "all": "සියල්ල",
+    "markingScheme": "ලකුණු ක්‍රමය",
+    "score": "ලකුණු"
+  }
+}
