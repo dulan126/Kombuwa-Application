@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"context"
@@ -12,9 +12,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	"github.com/kombuwaedu/api/internal/httputil"
-	"github.com/kombuwaedu/api/internal/model"
-	"github.com/kombuwaedu/api/internal/repository"
+	"github.com/miedvance/api/internal/httputil"
+	"github.com/miedvance/api/internal/model"
+	"github.com/miedvance/api/internal/repository"
 )
 
 const lbTTL = 5 * time.Minute

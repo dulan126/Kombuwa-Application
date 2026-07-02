@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"net/http"
@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/kombuwaedu/api/internal/httputil"
-	"github.com/kombuwaedu/api/internal/middleware"
-	"github.com/kombuwaedu/api/internal/model"
-	"github.com/kombuwaedu/api/internal/repository"
-	"github.com/kombuwaedu/api/internal/service"
+	"github.com/miedvance/api/internal/httputil"
+	"github.com/miedvance/api/internal/middleware"
+	"github.com/miedvance/api/internal/model"
+	"github.com/miedvance/api/internal/repository"
+	"github.com/miedvance/api/internal/service"
 )
 
 // PapersHandler exposes all paper HTTP endpoints.

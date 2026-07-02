@@ -1,4 +1,4 @@
-BINARY   := kombuwaedu-api
+﻿BINARY   := miedvance-api
 BUILD_DIR := ./build
 CMD      := ./cmd/server
 

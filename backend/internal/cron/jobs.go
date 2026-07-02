@@ -1,4 +1,4 @@
-package cron
+﻿package cron
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 
-	"github.com/kombuwaedu/api/internal/repository"
-	"github.com/kombuwaedu/api/internal/service"
+	"github.com/miedvance/api/internal/repository"
+	"github.com/miedvance/api/internal/service"
 )
 
 // Scheduler wraps robfig/cron with application-level job registrations.

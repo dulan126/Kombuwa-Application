@@ -1,4 +1,4 @@
-package redisclient
+﻿package redisclient
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/kombuwaedu/api/internal/config"
+	"github.com/miedvance/api/internal/config"
 )
 
 // New creates a go-redis client and verifies connectivity.

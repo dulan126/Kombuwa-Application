@@ -1,4 +1,4 @@
-package config
+﻿package config
 
 import (
 	"fmt"
@@ -57,8 +57,8 @@ func Load() (*Config, error) {
 
 	c.DBHost = getEnv("DB_HOST", "localhost")
 	c.DBPort = parseInt("DB_PORT", 5432)
-	c.DBName = getEnv("DB_NAME", "kombuwaedu")
-	c.DBUser = getEnv("DB_USER", "kombuwaedu_user")
+	c.DBName = getEnv("DB_NAME", "miedvance")
+	c.DBUser = getEnv("DB_USER", "miedvance_user")
 	if pw := os.Getenv("DB_PASSWORD"); pw == "" {
 		errs = append(errs, "DB_PASSWORD is required")
 	} else {
@@ -79,7 +79,7 @@ func Load() (*Config, error) {
 	c.SMSProvider = getEnv("SMS_PROVIDER", "dialog")
 	c.SMSApiURL = getEnv("SMS_API_URL", "")
 	c.SMSApiKey = getEnv("SMS_API_KEY", "")
-	c.SMSSenderID = getEnv("SMS_SENDER_ID", "KOMBUWAEDU")
+	c.SMSSenderID = getEnv("SMS_SENDER_ID", "MIEDVANCE")
 
 	c.UploadDir = getEnv("UPLOAD_DIR", "./uploads")
 	c.MaxFileSizeMB = parseInt("MAX_FILE_SIZE_MB", 10)

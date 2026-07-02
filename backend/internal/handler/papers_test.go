@@ -1,4 +1,4 @@
-package handler_test
+﻿package handler_test
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/kombuwaedu/api/internal/httputil"
+	"github.com/miedvance/api/internal/httputil"
 )
 
 // paperRouter wires minimal paper routes for unit testing request/response shapes.

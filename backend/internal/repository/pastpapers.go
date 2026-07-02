@@ -1,4 +1,4 @@
-package repository
+﻿package repository
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/kombuwaedu/api/internal/model"
+	"github.com/miedvance/api/internal/model"
 )
 
 // PastPapersRepo handles all past-paper DB queries.

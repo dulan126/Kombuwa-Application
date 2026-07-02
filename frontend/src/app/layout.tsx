@@ -1,25 +1,31 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
-import { DM_Sans, Noto_Sans_Sinhala } from 'next/font/google';
+import { Manrope, Space_Grotesk, Noto_Sans_Sinhala } from 'next/font/google';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { ToastProvider } from '@/providers/ToastProvider';
-import { Navbar } from '@/components/layout/Navbar';
 import './globals.css';
 
 // ─── Fonts ───────────────────────────────────────────────────────────────────
 
-const dmSans = DM_Sans({
+const manrope = Manrope({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-dm-sans',
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-manrope',
   display: 'swap',
 });
 
-const notoClass = Noto_Sans_Sinhala({
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+});
+
+const notoSinhala = Noto_Sans_Sinhala({
   subsets: ['sinhala', 'latin'],
   weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-noto-sans-sinhala',
+  variable: '--font-noto-sinhala',
   display: 'swap',
 });
 
@@ -28,15 +34,15 @@ const notoClass = Noto_Sans_Sinhala({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Kombuwaedu — ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ වේදිකාව',
-    template: '%s | Kombuwaedu',
+    default: 'MIEDVANCE — ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ වේදිකාව',
+    template: '%s | MIEDVANCE',
   },
   description:
     'ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ වේදිකාව. Daily MCQ, SRP Special Ranking Papers, Island-wide Rankings, Past Papers 2015-2024, Q&A Forum.',
-  keywords: ['A/L', 'MCQ', 'Sri Lanka', 'අ/පෙළ', 'Kombuwaedu', 'Past Papers', 'Rankings'],
-  authors: [{ name: 'Kombuwaedu' }],
+  keywords: ['A/L', 'MCQ', 'Sri Lanka', 'අ/පෙළ', 'MIEDVANCE', 'Past Papers', 'Rankings'],
+  authors: [{ name: 'MIEDVANCE' }],
   openGraph: {
-    title: 'Kombuwaedu — ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ වේදිකාව',
+    title: 'MIEDVANCE — ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ වේදිකාව',
     description: 'Daily MCQ · SRP · Rankings · Past Papers · Q&A Forum',
     type: 'website',
     locale: 'si_LK',
@@ -44,6 +50,10 @@ export const metadata: Metadata = {
 };
 
 // ─── Root Layout ─────────────────────────────────────────────────────────────
+// No global Navbar here — each route group supplies its own chrome:
+//   (app)/layout.tsx  → legacy top-navbar for /papers, /forum, etc.
+//   subject/[id]/layout.tsx → sidebar for the subject app
+//   The home page (/) includes its own HomeNavbar component directly.
 
 export default async function RootLayout({
   children,
@@ -54,13 +64,15 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={`${dmSans.variable} ${notoClass.variable}`}>
+    <html
+      lang={locale}
+      className={`${manrope.variable} ${spaceGrotesk.variable} ${notoSinhala.variable}`}
+    >
       <body className="antialiased">
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
             <ToastProvider>
-              <Navbar />
-              <main className="pt-[58px] min-h-screen">{children}</main>
+              {children}
             </ToastProvider>
           </AuthProvider>
         </NextIntlClientProvider>

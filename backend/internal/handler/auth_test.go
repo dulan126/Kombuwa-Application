@@ -1,4 +1,4 @@
-package handler_test
+﻿package handler_test
 
 import (
 	"bytes"
@@ -10,9 +10,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 
-	"github.com/kombuwaedu/api/internal/handler"
-	"github.com/kombuwaedu/api/internal/httputil"
-	"github.com/kombuwaedu/api/internal/middleware"
+	"github.com/miedvance/api/internal/handler"
+	"github.com/miedvance/api/internal/httputil"
+	"github.com/miedvance/api/internal/middleware"
 )
 
 // ── stub service & middleware ─────────────────────────────────────────────────

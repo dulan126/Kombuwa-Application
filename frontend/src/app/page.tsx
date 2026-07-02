@@ -1,145 +1,232 @@
-import React from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { Footer } from '@/components/layout/Footer';
-import { LandingCTA } from '@/components/features/auth/LandingCTA';
-import { STREAMS } from '@/lib/constants';
-import type { Stream } from '@/types';
+import { HeroBg } from '@/components/home/HeroBg';
+import { CountdownTimer } from '@/components/home/CountdownTimer';
+import { HomeNavbar } from '@/components/layout/HomeNavbar';
 
-// ─── Feature Cards Data ─────────────────────────────────────────────────────
+// ─── Stream cards (server) ────────────────────────────────────────────────────
+const STREAMS_DISPLAY = [
+  { key: 'phy', icon: '⚗️', name: 'Physical Science', color: '#4F7FE8', subjects: ['Combined Maths', 'Physics', 'Chemistry'] },
+  { key: 'bio', icon: '🧬', name: 'Bio Science',       color: '#3DAF72', subjects: ['Biology', 'Chemistry', 'Physics'] },
+  { key: 'com', icon: '📊', name: 'Commerce',          color: '#8b90f0', subjects: ['Accounting', 'Economics', 'Business Studies'] },
+  { key: 'art', icon: '🎨', name: 'Arts',              color: '#A78BFA', subjects: ['History', 'Political Science', 'Geography'] },
+  { key: 'tec', icon: '💻', name: 'Technology',        color: '#2EC4B6', subjects: ['ICT', 'Engineering Technology', 'Science for Technology'] },
+];
 
 const FEATURES = [
-  { icon: '📝', bg: 'rgba(79,127,232,0.12)', title: 'දෛනික MCQ', desc: 'ප්‍ර 10, 10 මිනිත්තු timer. Real-time: ලකුණු පමණ. Correct answers ඒ දිනෙ upload කෙරේ.' },
-  { icon: '⭐', bg: 'var(--color-gold-bg)', title: 'SRP — Weekly Special Ranking', desc: 'ප්‍ර 30, 30 මිනිත්තු. Island-wide ranking. ලකුණු ක්‍රමය ඒ දිනෙ.', isSRP: true },
-  { icon: '📖', bg: 'rgba(61,175,114,0.12)', title: 'ලකුණු ක්‍රමය', desc: 'ප්‍රශ්නනය ශේෂ දිනෙ upload. Subject + Grade + Type filter.' },
-  { icon: '🏆', bg: 'rgba(232,160,32,0.12)', title: 'Grade-wise Rankings', desc: 'Daily + SRP separate. Grade 12 / 13 separate. National + District rank.' },
-  { icon: '🎓', bg: 'rgba(46,196,182,0.12)', title: 'ශ්‍රේණිය Access', desc: 'Grade 12 → 12 & 13 papers. Papers uploaded per grade separately.' },
-  { icon: '💬', bg: 'rgba(168,139,250,0.12)', title: 'Q&A Forum', desc: 'Photo questions. Verified teacher answers. Resolved/Pending. Subject filter.' },
+  { icon: '📝', title: 'Daily MCQ',         desc: '10 targeted questions every day with a 10-minute timer. Scores update live island-wide.',         color: '#8b90f0' },
+  { icon: '⭐', title: 'SRP Rankings',       desc: '30-question Special Ranking Papers. Compete island-wide and see exactly where you stand.',       color: '#f2994a' },
+  { icon: '📚', title: 'Past Papers',        desc: 'Topic-wise MCQ and essay PDFs from 2015–2024 with marking schemes included.',                    color: '#6cd4da' },
+  { icon: '🏆', title: 'Leaderboards',       desc: 'National and district rankings updated after every exam window. Grade 12 & 13 separate boards.', color: '#2fae9e' },
+  { icon: '💬', title: 'Q&A Forum',          desc: 'Post photo questions and get verified answers from subject teachers.',                           color: '#a9adf5' },
+  { icon: '🎯', title: 'Progress Tracking',  desc: 'See your performance per topic across all subjects and focus where it matters most.',            color: '#f2994a' },
 ];
 
-const STATS = [
-  { value: '42K+', label: 'ක්‍රියාශීලී සිසුන්' },
-  { value: 'Daily', label: 'ප්‍ර 10 · 10 මිනිත්තු' },
-  { value: '⭐ SRP', label: 'ප්‍ර 30 · 30 මිනිත්තු' },
-  { value: '5', label: 'ධාරා · Grade 12 & 13' },
+const HOW_STEPS = [
+  { step: '01', title: 'Create your free account', desc: 'Sign up with your mobile number. Pick your A/L stream and grade.' },
+  { step: '02', title: 'Study daily',               desc: 'Attempt Daily MCQ and SRP papers. Review correct answers. Track your progress.' },
+  { step: '03', title: 'Rise in the rankings',      desc: 'Watch your national and district rank climb as you consistently outperform peers.' },
 ];
 
-const STREAM_STYLES: Record<Stream, { bg: string; border: string; color: string }> = {
-  phy: { bg: 'rgba(79,127,232,0.08)', border: 'rgba(79,127,232,0.2)', color: '#4f7fe8' },
-  bio: { bg: 'rgba(61,175,114,0.08)', border: 'rgba(61,175,114,0.2)', color: '#3daf72' },
-  com: { bg: 'var(--color-gold-bg)', border: 'var(--color-gold-border)', color: 'var(--color-gold)' },
-  art: { bg: 'rgba(139,144,240,0.08)', border: 'rgba(139,144,240,0.2)', color: '#8b90f0' },
-  tec: { bg: 'rgba(46,196,182,0.08)', border: 'rgba(46,196,182,0.2)', color: '#2ec4b6' },
-};
-
-// ─── Home Page ───────────────────────────────────────────────────────────────
-
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   return (
-    <>
-      {/* Hero */}
-      <section className="relative overflow-hidden min-h-[calc(100vh-58px)] flex items-center justify-center text-center px-8 py-12">
-        <div className="hero-bg absolute inset-0" />
-        <div className="hero-grid absolute inset-0" />
-        <div className="relative z-10 max-w-[740px]">
-          <div className="inline-flex items-center gap-1.5 bg-gold-bg border border-gold-border rounded-full px-3.5 py-1.5 text-[11px] text-gold mb-6">
-            <span className="w-[5px] h-[5px] rounded-full bg-gold animate-pulse-dot inline-block" />
-            ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ වේදිකාව — 2026
+    <div className="min-h-screen bg-dark overflow-x-hidden">
+      <HomeNavbar />
+
+      {/* ── HERO ──────────────────────────────────────────────────────────────── */}
+      <section
+        className="relative min-h-[calc(100vh-60px)] flex items-center justify-center overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1440 50%, #0d1b2e 100%)' }}
+      >
+        <HeroBg />
+
+        <div className="relative z-10 max-w-[860px] mx-auto px-6 py-20 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 border border-white/15 bg-white/8 backdrop-blur-sm rounded-full px-4 py-1.5 mb-7 animate-hero-fade" style={{ animationDelay: '0.1s' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-dot inline-block" />
+            <span className="text-white/75 text-[11.5px] font-medium tracking-wide">
+              Sri Lanka&apos;s #1 A/L Exam Platform · 2026
+            </span>
           </div>
-          <h1 className="text-[clamp(1.7rem,4vw,2.8rem)] font-bold leading-tight mb-4">
-            ඔබේ <span className="text-gold">අ/පෙළ</span> ජය ගන්න
-            <br />
-            Daily MCQ · ⭐ SRP · ශ්‍රේණිගත
+
+          {/* Headline */}
+          <h1
+            className="text-[clamp(2.4rem,6vw,4.2rem)] font-bold leading-[1.1] text-white mb-5 animate-hero-fade"
+            style={{ animationDelay: '0.2s', fontFamily: 'var(--font-space-grotesk)', textShadow: '0 2px 40px rgba(139,144,240,0.3)' }}
+          >
+            Ace Your A/L Exams.<br />
+            <span style={{ background: 'linear-gradient(90deg, #8b90f0, #6cd4da)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Rank Island-wide.
+            </span>
           </h1>
-          <p className="text-[13.5px] text-text-muted leading-[1.9] max-w-[520px] mx-auto mb-8 font-light">
-            Daily ප්‍ර 10 (10 මිනි) · SRP ප්‍ර 30 (30 මිනි) · ශ්‍රේණිය + ධාරාව paper access · Real-time ලකුණු · ලකුණු ක්‍රමය ඒ දිනෙ
+
+          {/* Sub */}
+          <p className="text-white/60 text-[15px] leading-[1.9] max-w-[540px] mx-auto mb-9 animate-hero-fade" style={{ animationDelay: '0.3s' }}>
+            Daily MCQ · SRP Special Ranking Papers · Past Papers 2015–2024 ·
+            National &amp; District Leaderboards · Q&amp;A Forum
           </p>
-          <div className="flex gap-2.5 justify-center flex-wrap">
-            <LandingCTA />
+
+          {/* CTAs */}
+          <div className="flex gap-3 justify-center flex-wrap mb-12 animate-hero-fade" style={{ animationDelay: '0.4s' }}>
+            <Link
+              href="/register"
+              className="px-7 py-3 rounded-full text-white font-semibold text-[14px] no-underline transition-all shadow-[0_0_30px_rgba(139,144,240,0.4)] hover:shadow-[0_0_50px_rgba(139,144,240,0.6)] hover:scale-[1.02]"
+              style={{ background: 'linear-gradient(135deg, #8b90f0, #6f73d6)' }}
+            >
+              Start for Free →
+            </Link>
+            <Link
+              href="/login"
+              className="px-7 py-3 rounded-full text-white/80 font-semibold text-[14px] no-underline border border-white/20 hover:bg-white/10 hover:text-white transition-all"
+            >
+              Sign In
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="flex gap-8 justify-center flex-wrap animate-hero-fade" style={{ animationDelay: '0.5s' }}>
+            {[['42K+', 'Students'], ['5', 'A/L Streams'], ['10', 'Years of Papers'], ['Daily', 'Rankings']].map(([v, l]) => (
+              <div key={l} className="text-center">
+                <div className="text-white text-[1.5rem] font-bold" style={{ fontFamily: 'var(--font-space-grotesk)' }}>{v}</div>
+                <div className="text-white/45 text-[11px] mt-0.5">{l}</div>
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none" style={{ background: 'linear-gradient(to bottom, transparent, #f6f6fc)' }} />
       </section>
 
-      {/* Stats Strip */}
-      <div className="grid grid-cols-4 max-md:grid-cols-2 gap-px bg-border-dim border-t border-border-dim">
-        {STATS.map((stat) => (
-          <div key={stat.label} className="bg-dark py-6 px-3 text-center">
-            <div className="text-[1.8rem] font-bold text-gold">{stat.value}</div>
-            <div className="text-[11px] text-text-muted mt-0.5">{stat.label}</div>
-          </div>
-        ))}
+      {/* ── COUNTDOWN ─────────────────────────────────────────────────────────── */}
+      <div className="bg-surface border-y border-border-dim">
+        <CountdownTimer />
       </div>
 
-      {/* Features */}
-      <section className="py-12 px-8 max-w-[1100px] mx-auto">
-        <div className="text-[10px] font-bold tracking-[2px] uppercase text-gold mb-2.5">Platform Features</div>
-        <h2 className="text-[clamp(1.35rem,2.5vw,1.9rem)] font-bold mb-2.5 leading-tight">
-          A සාමාර්ථ ලබා ගැනීමට ඔබට අවශ්‍ය සියල්ල
-        </h2>
-        <div className="grid grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1 gap-4 mt-6">
-          {FEATURES.map((feat) => (
-            <div
-              key={feat.title}
-              className={`bg-surface border border-border-dim rounded-[var(--radius-base)] p-5 transition-all duration-200 hover:border-gold-border hover:translate-y-[-2px] ${feat.isSRP ? 'border-t-[3px] border-t-gold' : ''}`}
-            >
+      {/* ── FEATURES ──────────────────────────────────────────────────────────── */}
+      <section className="py-20 px-6 bg-dark">
+        <div className="max-w-[1100px] mx-auto">
+          <div className="text-center mb-12">
+            <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-gold mb-2">Platform Features</div>
+            <h2 className="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-text-primary" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+              Everything You Need to Score an A
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {FEATURES.map((f) => (
               <div
-                className="w-10 h-10 rounded-[9px] mb-3 flex items-center justify-center text-[18px]"
-                style={{ background: feat.bg }}
+                key={f.title}
+                className="bg-surface rounded-[16px] border border-border-dim p-6 hover:border-gold/40 hover:-translate-y-1 transition-all duration-200 group"
               >
-                {feat.icon}
-              </div>
-              <h3 className="text-[13px] font-semibold mb-1.5">
-                {feat.isSRP ? (
-                  <>SRP — <span className="text-gold">Weekly Special Ranking</span></>
-                ) : (
-                  feat.title
-                )}
-              </h3>
-              <p className="text-[11.5px] text-text-muted leading-[1.7]">{feat.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Streams */}
-      <section className="bg-dark-2 border-y border-border-dim py-11 px-8 text-center">
-        <div className="text-[10px] font-bold tracking-[2px] uppercase text-gold mb-2.5">Subject Streams</div>
-        <h2 className="text-[clamp(1.35rem,2.5vw,1.9rem)] font-bold mb-2.5 leading-tight">
-          ධාරාව + ශ්‍රේණිය — ඔබේ subjects auto-filtered
-        </h2>
-        <div className="flex gap-2 flex-wrap justify-center mt-4">
-          {(Object.keys(STREAMS) as Stream[]).map((key) => {
-            const s = STREAM_STYLES[key];
-            const stream = STREAMS[key];
-            return (
-              <Link key={key} href="/register">
-                <span
-                  className="rounded-full px-5 py-2 text-[12.5px] font-semibold cursor-pointer border transition-opacity hover:opacity-80"
-                  style={{ background: s.bg, borderColor: s.border, color: s.color }}
+                <div
+                  className="w-11 h-11 rounded-[12px] flex items-center justify-center text-[22px] mb-4"
+                  style={{ background: f.color + '18' }}
                 >
-                  {stream.icon} {stream.name}
-                </span>
-              </Link>
-            );
-          })}
+                  {f.icon}
+                </div>
+                <h3 className="text-[14px] font-bold text-text-primary mb-2 group-hover:text-gold transition-colors">
+                  {f.title}
+                </h3>
+                <p className="text-[12.5px] text-text-muted leading-[1.7]">{f.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="text-center py-14 px-8">
-        <div className="text-[10px] font-bold tracking-[2px] uppercase text-gold mb-2.5">Register Now</div>
-        <h2 className="text-[clamp(1.35rem,2.5vw,1.9rem)] font-bold mb-2.5 leading-tight">
-          දූපතේ ඉහළම ස්ථානය ලබා ගැනීමට සූදානමිද?
-        </h2>
-        <p className="text-text-muted text-[13px] mb-7 max-w-[420px] mx-auto">
-          ධාරාව + ශ්‍රේණිය select — ඔබේ subjects auto-filtered.
-        </p>
-        <Link href="/register">
-          <Button variant="primary" size="lg">ලියාපදිංචිය — Free</Button>
-        </Link>
+      {/* ── STREAMS ───────────────────────────────────────────────────────────── */}
+      <section className="py-20 px-6 bg-surface border-y border-border-dim">
+        <div className="max-w-[1100px] mx-auto">
+          <div className="text-center mb-10">
+            <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-gold mb-2">A/L Streams</div>
+            <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-bold text-text-primary" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+              Choose Your Stream
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {STREAMS_DISPLAY.map((s) => (
+              <Link
+                key={s.key}
+                href="/register"
+                className="group flex flex-col items-center text-center p-5 rounded-[16px] border-2 border-border-dim bg-dark hover:-translate-y-1 transition-all duration-200 no-underline"
+                style={{ '--stream-color': s.color } as React.CSSProperties}
+              >
+                <div
+                  className="w-14 h-14 rounded-[14px] flex items-center justify-center text-[28px] mb-3 group-hover:scale-110 transition-transform"
+                  style={{ background: s.color + '18' }}
+                >
+                  {s.icon}
+                </div>
+                <div className="text-[13px] font-bold text-text-primary mb-2">{s.name}</div>
+                <div className="flex flex-col gap-1">
+                  {s.subjects.map((sub) => (
+                    <div key={sub} className="text-[10.5px] text-text-muted">{sub}</div>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       </section>
 
-      <Footer />
-    </>
+      {/* ── HOW IT WORKS ──────────────────────────────────────────────────────── */}
+      <section
+        className="py-20 px-6"
+        style={{ background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1440 100%)' }}
+      >
+        <div className="max-w-[860px] mx-auto text-center">
+          <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-gold/80 mb-2">How it works</div>
+          <h2
+            className="text-[clamp(1.5rem,3vw,2rem)] font-bold text-white mb-14"
+            style={{ fontFamily: 'var(--font-space-grotesk)' }}
+          >
+            Up and running in minutes
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {HOW_STEPS.map((s, i) => (
+              <div key={s.step} className="relative flex flex-col items-center text-center group">
+                {/* Connector line */}
+                {i < HOW_STEPS.length - 1 && (
+                  <div className="hidden md:block absolute top-[30px] left-[calc(50%+40px)] right-0 h-px border-t border-dashed border-white/15" />
+                )}
+                <div
+                  className="w-[60px] h-[60px] rounded-full flex items-center justify-center text-[1.1rem] font-bold mb-4 border border-white/20 group-hover:border-gold/50 transition-colors"
+                  style={{ background: 'rgba(139,144,240,0.12)', color: '#8b90f0', fontFamily: 'var(--font-space-grotesk)' }}
+                >
+                  {s.step}
+                </div>
+                <h3 className="text-white font-bold text-[14px] mb-2">{s.title}</h3>
+                <p className="text-white/50 text-[12.5px] leading-[1.7]">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12">
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-white font-semibold text-[14px] no-underline hover:scale-[1.03] transition-all"
+              style={{ background: 'linear-gradient(135deg, #8b90f0, #6f73d6)', boxShadow: '0 0 40px rgba(139,144,240,0.4)' }}
+            >
+              Create Free Account →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ────────────────────────────────────────────────────────────── */}
+      <footer className="bg-dark border-t border-border-dim py-10 px-6">
+        <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-[8px] gradient-brand flex items-center justify-center text-white font-bold text-[14px]">M</div>
+            <span className="font-bold text-text-primary" style={{ fontFamily: 'var(--font-space-grotesk)' }}>Miedvance</span>
+          </div>
+          <div className="flex gap-5">
+            <Link href="/login"    className="text-[12px] text-text-muted hover:text-gold no-underline transition-colors">Login</Link>
+            <Link href="/register" className="text-[12px] text-text-muted hover:text-gold no-underline transition-colors">Register</Link>
+            <Link href="/forum"    className="text-[12px] text-text-muted hover:text-gold no-underline transition-colors">Forum</Link>
+          </div>
+          <p className="text-[11.5px] text-text-muted">© {new Date().getFullYear()} Miedvance · Sri Lanka&apos;s Premier A/L Platform</p>
+        </div>
+      </footer>
+    </div>
   );
 }

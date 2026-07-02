@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"context"
@@ -17,16 +17,16 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	appCron "github.com/kombuwaedu/api/internal/cron"
-	"github.com/kombuwaedu/api/internal/config"
-	"github.com/kombuwaedu/api/internal/db"
-	"github.com/kombuwaedu/api/internal/handler"
-	"github.com/kombuwaedu/api/internal/httputil"
-	"github.com/kombuwaedu/api/internal/middleware"
-	redisclient "github.com/kombuwaedu/api/internal/redis"
-	"github.com/kombuwaedu/api/internal/repository"
-	"github.com/kombuwaedu/api/internal/service"
-	"github.com/kombuwaedu/api/internal/sms"
+	appCron "github.com/miedvance/api/internal/cron"
+	"github.com/miedvance/api/internal/config"
+	"github.com/miedvance/api/internal/db"
+	"github.com/miedvance/api/internal/handler"
+	"github.com/miedvance/api/internal/httputil"
+	"github.com/miedvance/api/internal/middleware"
+	redisclient "github.com/miedvance/api/internal/redis"
+	"github.com/miedvance/api/internal/repository"
+	"github.com/miedvance/api/internal/service"
+	"github.com/miedvance/api/internal/sms"
 )
 
 func main() {
@@ -157,7 +157,7 @@ func main() {
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-		log.Info("Kombuwaedu API starting",
+		log.Info("MIEDVANCE API starting",
 			zap.Int("port", cfg.Port),
 			zap.String("env", cfg.Env),
 		)

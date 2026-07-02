@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"fmt"
@@ -11,12 +11,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 
-	"github.com/kombuwaedu/api/internal/config"
-	"github.com/kombuwaedu/api/internal/httputil"
-	"github.com/kombuwaedu/api/internal/middleware"
-	"github.com/kombuwaedu/api/internal/model"
-	"github.com/kombuwaedu/api/internal/repository"
-	"github.com/kombuwaedu/api/internal/service"
+	"github.com/miedvance/api/internal/config"
+	"github.com/miedvance/api/internal/httputil"
+	"github.com/miedvance/api/internal/middleware"
+	"github.com/miedvance/api/internal/model"
+	"github.com/miedvance/api/internal/repository"
+	"github.com/miedvance/api/internal/service"
 )
 
 const (

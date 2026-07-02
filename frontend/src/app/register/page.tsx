@@ -1,187 +1,499 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
-import { Button } from '@/components/ui/Button';
-import { Input, Select } from '@/components/ui/Input';
 import { STREAMS, DISTRICTS } from '@/lib/constants';
 import { districtMap } from '@/lib/utils';
 import { isApiError } from '@/services/api-client';
 import type { Stream, Grade } from '@/types';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface FormData {
+  mobile:   string;
+  name:     string;
+  email:    string;
+  district: string;
+  examYear: string;
+  stream:   Stream | '';
+  grade:    Grade;
+  password: string;
+  confirm:  string;
+}
+
+type Step = 'phone' | 'details' | 'password' | 'otp';
+
+const DISTRICT_OPTIONS = DISTRICTS.map((d) => ({
+  value: d.si,
+  label: d.en.charAt(0).toUpperCase() + d.en.slice(1),
+}));
+
+// ─── Step indicator ───────────────────────────────────────────────────────────
+
+const STEPS: { key: Step; label: string }[] = [
+  { key: 'phone',    label: 'Phone'    },
+  { key: 'details',  label: 'Details'  },
+  { key: 'password', label: 'Password' },
+  { key: 'otp',      label: 'Verify'   },
+];
+
+function ProgressBar({ current }: { current: Step }) {
+  const idx = STEPS.findIndex((s) => s.key === current);
+  return (
+    <div className="flex items-center gap-0 mb-8 w-full max-w-[340px] mx-auto">
+      {STEPS.map((s, i) => (
+        <React.Fragment key={s.key}>
+          <div className="flex flex-col items-center gap-1">
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300 ${
+                i < idx  ? 'bg-success text-white' :
+                i === idx ? 'text-white shadow-[0_0_16px_rgba(139,144,240,0.5)]' :
+                            'bg-border-dim text-text-muted'
+              }`}
+              style={i === idx ? { background: 'linear-gradient(135deg, #8b90f0, #6f73d6)' } : undefined}
+            >
+              {i < idx ? '✓' : i + 1}
+            </div>
+            <span className={`text-[9.5px] font-medium ${i <= idx ? 'text-gold' : 'text-text-muted'}`}>
+              {s.label}
+            </span>
+          </div>
+          {i < STEPS.length - 1 && (
+            <div className={`flex-1 h-px mx-1 mb-4 transition-all duration-500 ${i < idx ? 'bg-success' : 'bg-border-dim'}`} />
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+// ─── Field components ────────────────────────────────────────────────────────
+
+function Field({ label, required, hint, children }: {
+  label: string; required?: boolean; hint?: string; children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">
+        {label} {required && <span className="text-danger normal-case tracking-normal">*</span>}
+        {hint && <span className="text-text-muted font-normal normal-case tracking-normal ml-1">{hint}</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputCls = "w-full bg-dark border border-border-dim rounded-[10px] px-3.5 py-2.5 text-[13px] text-text-primary placeholder:text-text-muted outline-none focus:border-gold transition-colors font-[inherit]";
+
+// ─── Password strength ───────────────────────────────────────────────────────
+
+function getStrength(pw: string): { level: number; label: string; color: string } {
+  if (!pw) return { level: 0, label: '', color: 'bg-border-dim' };
+  let s = 0;
+  if (pw.length >= 8) s++;
+  if (/[A-Z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  const map = [
+    { level: 0, label: '',        color: 'bg-border-dim' },
+    { level: 1, label: 'Weak',    color: 'bg-danger'     },
+    { level: 2, label: 'Fair',    color: 'bg-warning'    },
+    { level: 3, label: 'Good',    color: 'bg-success/70' },
+    { level: 4, label: 'Strong',  color: 'bg-success'    },
+  ];
+  return map[s];
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function RegisterPage() {
-  const router = useRouter();
-  const { register, verifyOTP, demoLogin, isLoggedIn } = useAuth();
+  const router  = useRouter();
+  const { register, verifyOTP, isLoggedIn } = useAuth();
   const { showToast } = useToast();
 
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [stream, setStream] = useState<Stream | ''>('');
-  const [grade, setGrade] = useState<Grade>('12');
-  const [district, setDistrict] = useState('කොළඹ');
-  const [school, setSchool] = useState('');
+  const [step, setStep]       = useState<Step>('phone');
   const [isLoading, setIsLoading] = useState(false);
-  const [otpStep, setOtpStep] = useState(false);
-  const [otpMobile, setOtpMobile] = useState('');
+  const [showPw, setShowPw]   = useState(false);
+  const [form, setForm]       = useState<FormData>({
+    mobile: '', name: '', email: '', district: 'කොළඹ',
+    examYear: '2026', stream: '', grade: '12',
+    password: '', confirm: '',
+  });
   const [otpCode, setOtpCode] = useState('');
 
-  // Redirect if already logged in
   React.useEffect(() => {
-    if (isLoggedIn) router.push('/papers');
+    if (isLoggedIn) router.replace('/dashboard');
   }, [isLoggedIn, router]);
 
-  const handleRegister = async () => {
-    if (!stream) { showToast('ධාරාව select කරන්න!', 'warning'); return; }
-    if (!name.trim()) { showToast('නම ඇතුළත් කරන්න', 'warning'); return; }
-    const mobile = phone.trim();
-    if (!mobile) { showToast('දු.ස. අංකය ඇතුළත් කරන්න', 'warning'); return; }
-    if (!/^(?:0|\+94)7[0-9]{8}$/.test(mobile)) {
-      showToast('දු.ස. ආකෘතිය: 07X XXX XXXX', 'warning');
-      return;
+  const set = (field: keyof FormData, value: string) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+  // ── Step handlers ──────────────────────────────────────────────────────────
+
+  function handlePhoneNext() {
+    const m = form.mobile.trim();
+    if (!m) { showToast('Please enter your mobile number', 'warning'); return; }
+    if (!/^(?:0|\+94)7[0-9]{8}$/.test(m)) {
+      showToast('Use format 07X XXX XXXX or +94 7XX XXX XXX', 'warning'); return;
     }
+    setStep('details');
+  }
+
+  function handleDetailsNext() {
+    if (!form.name.trim())    { showToast('Please enter your full name', 'warning'); return; }
+    if (!form.stream)         { showToast('Please select your A/L stream', 'warning'); return; }
+    setStep('password');
+  }
+
+  async function handleCreateAccount() {
+    if (form.password.length < 8) { showToast('Password must be at least 8 characters', 'warning'); return; }
+    if (form.password !== form.confirm) { showToast('Passwords do not match', 'warning'); return; }
 
     setIsLoading(true);
     try {
       const result = await register({
-        mobile,
-        name: name.trim(),
-        password: crypto.randomUUID(),
-        stream: stream as Stream,
-        grade,
-        district: districtMap(district),
-        school: school || undefined,
-        exam_year: 2026,
+        mobile:     form.mobile.trim(),
+        name:       form.name.trim(),
+        password:   form.password,
+        stream:     form.stream as Stream,
+        grade:      form.grade,
+        district:   districtMap(form.district),
+        exam_year:  parseInt(form.examYear),
       });
-
       if (result.needsOTP) {
-        setOtpMobile(result.mobile);
-        setOtpStep(true);
-        showToast('OTP යවන ලදී!', 'success');
+        setStep('otp');
+        showToast(`Verification code sent to ${form.mobile.trim()}`, 'success');
       } else {
-        showToast('සාදරයෙන් පිළිගනිමු! ✓', 'success');
-        router.push('/papers');
+        showToast('Welcome to Miedvance! 🎉', 'success');
+        router.push('/dashboard');
       }
     } catch (err: unknown) {
       if (isApiError(err) && err.status === 409) {
-        showToast('Mobile already registered', 'warning');
+        showToast('This mobile number is already registered', 'warning');
+        setStep('phone');
       } else {
-        showToast('Error: ' + (isApiError(err) ? err.message : 'Try again'), 'error');
+        showToast('Something went wrong — ' + (isApiError(err) ? err.message : 'please try again'), 'error');
       }
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const handleVerifyOTP = async () => {
-    if (otpCode.length !== 6) { showToast('OTP 6 ලකුණු ඇතුළත් කරන්න', 'warning'); return; }
+  async function handleVerifyOTP() {
+    if (otpCode.length !== 6) { showToast('Enter the 6-digit code from your SMS', 'warning'); return; }
     setIsLoading(true);
     try {
-      await verifyOTP(otpMobile, otpCode, 'register');
-      showToast('සාදරයෙන් පිළිගනිමු! ✓', 'success');
-      router.push('/papers');
+      await verifyOTP(form.mobile.trim(), otpCode, 'register');
+      showToast('Welcome to Miedvance! 🎉', 'success');
+      router.push('/dashboard');
     } catch (err: unknown) {
-      showToast('OTP වැරදිය: ' + (isApiError(err) ? err.message : ''), 'error');
+      showToast('Incorrect code — ' + (isApiError(err) ? err.message : 'please try again'), 'error');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  if (otpStep) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-58px)] px-4">
-        <div className="bg-dark-2 border border-white/10 rounded-[var(--radius-base)] p-6 w-full max-w-[420px] animate-scale-in">
-          <h1 className="text-lg font-bold mb-1">OTP සත්‍යාපනය</h1>
-          <p className="text-[11px] text-text-muted mb-6">{otpMobile} වෙත 6-digit OTP යවන ලදී</p>
-          <Input
-            label="OTP කේතය"
-            placeholder="000000"
-            maxLength={6}
-            value={otpCode}
-            onChange={(e) => setOtpCode(e.target.value)}
-            className="text-center text-[1.4rem] tracking-[0.5rem]"
-            autoFocus
-          />
-          <Button fullWidth className="mt-4" isLoading={isLoading} onClick={handleVerifyOTP}>
-            සත්‍යාපනය කරන්න
-          </Button>
-        </div>
-      </div>
-    );
   }
 
+  const strength = getStrength(form.password);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-58px)] px-4 py-8">
-      <div className="bg-dark-2 border border-white/10 rounded-[var(--radius-base)] p-6 w-full max-w-[480px] animate-scale-in">
-        <h1 className="text-lg font-bold mb-1">ලියාපදිංචිය</h1>
-        <p className="text-[11px] text-text-muted mb-6">ධාරාව + ශ්‍රේණිය → ඔබේ subjects auto-filtered</p>
+    <div
+      className="min-h-screen flex"
+      style={{ background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1440 50%, #0d1b2e 100%)' }}
+    >
+      {/* ── Left branding ── */}
+      <div className="hidden lg:flex flex-col justify-center px-14 w-[380px] shrink-0 relative overflow-hidden">
+        {/* Blob */}
+        <div className="animate-blob absolute -top-20 -left-20 w-80 h-80 rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, #8b90f0, transparent 70%)', filter: 'blur(60px)' }} />
 
-        {/* Name & Phone */}
-        <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-2.5 mb-2.5">
-          <Input label="නම" placeholder="ඔබේ නම" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input label="දු.ස. (+94)" placeholder="07X XXX XXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <div className="relative z-10">
+          <Link href="/" className="flex items-center gap-2.5 no-underline mb-12">
+            <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-white font-bold text-[18px]"
+              style={{ background: 'linear-gradient(135deg, #8b90f0, #6f73d6)' }}>M</div>
+            <span className="text-white text-[20px] font-bold" style={{ fontFamily: 'var(--font-space-grotesk)' }}>Miedvance</span>
+          </Link>
+          <h2 className="text-white text-[1.8rem] font-bold leading-tight mb-3" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+            Your A/L journey<br />starts here.
+          </h2>
+          <p className="text-white/50 text-[13px] leading-relaxed mb-8">
+            Join 42,000+ students preparing for A/L exams with daily MCQ, SRP papers, and island-wide rankings.
+          </p>
+          {['Free forever — no credit card', 'Daily MCQ with instant scores', 'Island-wide leaderboards'].map((t) => (
+            <div key={t} className="flex items-center gap-2.5 mb-3">
+              <div className="w-5 h-5 rounded-full bg-success/20 flex items-center justify-center text-success text-[11px]">✓</div>
+              <span className="text-white/65 text-[12.5px]">{t}</span>
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Grade */}
-        <div className="mb-2.5">
-          <label className="block text-[10.5px] text-text-muted mb-1.5">ශ්‍රේණිය</label>
-          <div className="flex gap-2">
-            <Button variant={grade === '12' ? 'primary' : 'outline'} className="flex-1" onClick={() => setGrade('12')}>
-              12 ශ්‍රේණිය
-            </Button>
-            <Button variant={grade === '13' ? 'primary' : 'outline'} className="flex-1" onClick={() => setGrade('13')}>
-              13 ශ්‍රේණිය
-            </Button>
+      {/* ── Right form ── */}
+      <div className="flex-1 flex items-center justify-center px-5 py-10">
+        <div className="w-full max-w-[460px]">
+          {/* Top logo (mobile) */}
+          <Link href="/" className="lg:hidden flex items-center gap-2 no-underline mb-6 justify-center">
+            <div className="w-8 h-8 rounded-[8px] flex items-center justify-center text-white font-bold"
+              style={{ background: 'linear-gradient(135deg, #8b90f0, #6f73d6)' }}>M</div>
+            <span className="text-white font-bold text-[18px]">Miedvance</span>
+          </Link>
+
+          <ProgressBar current={step} />
+
+          <div className="bg-surface rounded-[20px] shadow-2xl border border-white/8 p-7 animate-scale-in">
+
+            {/* ─── STEP: PHONE ─────────────────────────────────────────────── */}
+            {step === 'phone' && (
+              <div>
+                <h1 className="text-[1.3rem] font-bold text-text-primary mb-1" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+                  Enter your mobile number
+                </h1>
+                <p className="text-[12.5px] text-text-muted mb-6">
+                  We&apos;ll send a verification code to confirm your number.
+                </p>
+
+                <Field label="Mobile Number" required>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-text-muted font-semibold">+94</span>
+                    <input
+                      type="tel"
+                      placeholder="7XX XXX XXX"
+                      value={form.mobile.startsWith('+94') ? form.mobile.slice(3) : form.mobile.startsWith('0') ? form.mobile.slice(1) : form.mobile}
+                      onChange={(e) => set('mobile', '+94' + e.target.value.replace(/\D/g, '').slice(0, 9))}
+                      autoFocus
+                      className={inputCls + ' pl-12'}
+                    />
+                  </div>
+                </Field>
+
+                <div className="mt-3 px-3 py-2.5 bg-gold/8 border border-gold/20 rounded-[8px]">
+                  <p className="text-[11.5px] text-text-muted leading-relaxed">
+                    📱 We&apos;ll send a one-time code via SMS to verify your Sri Lankan number.
+                  </p>
+                </div>
+
+                <button
+                  onClick={handlePhoneNext}
+                  className="w-full mt-6 py-3.5 rounded-[12px] text-white font-semibold text-[14px] border-none cursor-pointer transition-all hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #8b90f0, #6f73d6)' }}
+                >
+                  Continue →
+                </button>
+
+                <p className="text-center text-[12px] text-text-muted mt-4">
+                  Already have an account?{' '}
+                  <Link href="/login" className="text-gold font-semibold no-underline hover:text-gold-dark transition-colors">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+            )}
+
+            {/* ─── STEP: DETAILS ───────────────────────────────────────────── */}
+            {step === 'details' && (
+              <div>
+                <h1 className="text-[1.3rem] font-bold text-text-primary mb-1" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+                  Tell us about yourself
+                </h1>
+                <p className="text-[12.5px] text-text-muted mb-6">
+                  This helps us personalise your exam prep experience.
+                </p>
+
+                <div className="flex flex-col gap-4">
+                  {/* Name + Email */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Full Name" required>
+                      <input type="text" placeholder="e.g. Kavitha Perera" value={form.name}
+                        onChange={(e) => set('name', e.target.value)} className={inputCls} autoFocus />
+                    </Field>
+                    <Field label="Email" hint="(optional)">
+                      <input type="email" placeholder="you@example.com" value={form.email}
+                        onChange={(e) => set('email', e.target.value)} className={inputCls} />
+                    </Field>
+                  </div>
+
+                  {/* Grade */}
+                  <Field label="Grade" required>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['12', '13'] as Grade[]).map((g) => (
+                        <button key={g} onClick={() => set('grade', g)}
+                          className={`py-2.5 rounded-[10px] text-[13px] font-semibold border-2 cursor-pointer transition-all font-[inherit] ${
+                            form.grade === g ? 'border-gold bg-gold text-white' : 'border-border-dim bg-dark text-text-primary hover:border-gold'
+                          }`}>
+                          Grade {g}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+
+                  {/* Stream */}
+                  <Field label="A/L Stream" required>
+                    <div className="grid grid-cols-5 gap-2">
+                      {(Object.entries(STREAMS) as [Stream, typeof STREAMS[Stream]][]).map(([key, s]) => {
+                        const sel = form.stream === key;
+                        return (
+                          <button key={key} onClick={() => set('stream', key)}
+                            className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-[10px] border-2 cursor-pointer transition-all font-[inherit]"
+                            style={{ borderColor: sel ? s.color : 'var(--color-border-dim)', background: sel ? s.bg : 'var(--color-dark)' }}
+                          >
+                            <span className="text-[20px]">{s.icon}</span>
+                            <span className="text-[9.5px] font-semibold leading-tight text-center"
+                              style={{ color: sel ? s.color : 'var(--color-text-muted)' }}>
+                              {s.name.split(' ')[0]}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Field>
+
+                  {/* District + Year */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="District">
+                      <select value={form.district} onChange={(e) => set('district', e.target.value)}
+                        className={inputCls + ' cursor-pointer'}>
+                        {DISTRICT_OPTIONS.map((d) => (
+                          <option key={d.value} value={d.value}>{d.label}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="A/L Year">
+                      <select value={form.examYear} onChange={(e) => set('examYear', e.target.value)}
+                        className={inputCls + ' cursor-pointer'}>
+                        {['2026', '2027'].map((y) => <option key={y} value={y}>{y} A/L</option>)}
+                      </select>
+                    </Field>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button onClick={() => setStep('phone')}
+                    className="px-5 py-3 rounded-[12px] border border-border-dim text-text-muted text-[13px] font-medium cursor-pointer bg-transparent hover:border-gold hover:text-gold transition-all font-[inherit]">
+                    ← Back
+                  </button>
+                  <button onClick={handleDetailsNext}
+                    className="flex-1 py-3 rounded-[12px] text-white font-semibold text-[14px] border-none cursor-pointer transition-all hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #8b90f0, #6f73d6)' }}>
+                    Continue →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ─── STEP: PASSWORD ──────────────────────────────────────────── */}
+            {step === 'password' && (
+              <div>
+                <h1 className="text-[1.3rem] font-bold text-text-primary mb-1" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+                  Create your password
+                </h1>
+                <p className="text-[12.5px] text-text-muted mb-6">
+                  Choose a strong password for your account.
+                </p>
+
+                <div className="flex flex-col gap-4">
+                  <Field label="Password" required>
+                    <div className="relative">
+                      <input
+                        type={showPw ? 'text' : 'password'}
+                        placeholder="At least 8 characters"
+                        value={form.password}
+                        onChange={(e) => set('password', e.target.value)}
+                        className={inputCls + ' pr-10'}
+                        autoFocus
+                      />
+                      <button type="button" onClick={() => setShowPw((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors bg-transparent border-none cursor-pointer text-[13px]">
+                        {showPw ? '🙈' : '👁️'}
+                      </button>
+                    </div>
+                    {/* Strength bar */}
+                    {form.password && (
+                      <div className="mt-2">
+                        <div className="flex gap-1 mb-1">
+                          {[1,2,3,4].map((i) => (
+                            <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength.level ? strength.color : 'bg-border-dim'}`} />
+                          ))}
+                        </div>
+                        {strength.label && <p className="text-[10.5px] text-text-muted">{strength.label} password</p>}
+                      </div>
+                    )}
+                  </Field>
+
+                  <Field label="Confirm Password" required>
+                    <input
+                      type={showPw ? 'text' : 'password'}
+                      placeholder="Re-enter your password"
+                      value={form.confirm}
+                      onChange={(e) => set('confirm', e.target.value)}
+                      className={inputCls + (form.confirm && form.confirm !== form.password ? ' border-danger' : '')}
+                    />
+                    {form.confirm && form.confirm !== form.password && (
+                      <p className="text-[11px] text-danger mt-1">Passwords do not match</p>
+                    )}
+                  </Field>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button onClick={() => setStep('details')}
+                    className="px-5 py-3 rounded-[12px] border border-border-dim text-text-muted text-[13px] font-medium cursor-pointer bg-transparent hover:border-gold hover:text-gold transition-all font-[inherit]">
+                    ← Back
+                  </button>
+                  <button onClick={handleCreateAccount} disabled={isLoading}
+                    className="flex-1 py-3 rounded-[12px] text-white font-semibold text-[14px] border-none cursor-pointer transition-all hover:opacity-90 disabled:opacity-50"
+                    style={{ background: 'linear-gradient(135deg, #8b90f0, #6f73d6)' }}>
+                    {isLoading ? 'Creating account…' : 'Create Account →'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ─── STEP: OTP ───────────────────────────────────────────────── */}
+            {step === 'otp' && (
+              <div>
+                <div className="flex justify-center mb-5">
+                  <div className="w-14 h-14 rounded-[14px] flex items-center justify-center text-2xl bg-gold/10 border border-gold/20">
+                    📱
+                  </div>
+                </div>
+                <h1 className="text-[1.3rem] font-bold text-text-primary text-center mb-1.5" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+                  Verify your number
+                </h1>
+                <p className="text-[12.5px] text-text-muted text-center mb-6">
+                  We sent a 6-digit code to{' '}
+                  <span className="font-semibold text-text-primary">{form.mobile}</span>
+                </p>
+
+                <Field label="Verification Code">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    autoFocus
+                    className={inputCls + ' text-center text-[1.8rem] tracking-[0.6rem] py-4 font-bold'}
+                  />
+                </Field>
+
+                <button onClick={handleVerifyOTP} disabled={isLoading || otpCode.length !== 6}
+                  className="w-full mt-5 py-3.5 rounded-[12px] text-white font-semibold text-[14px] border-none cursor-pointer transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: 'linear-gradient(135deg, #8b90f0, #6f73d6)' }}>
+                  {isLoading ? 'Verifying…' : 'Verify & Enter →'}
+                </button>
+
+                <button onClick={() => setStep('password')}
+                  className="w-full mt-2 py-2 text-[12px] text-text-muted hover:text-text-primary transition-colors bg-transparent border-none cursor-pointer">
+                  ← Edit details
+                </button>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Stream */}
-        <div className="mb-2.5">
-          <label className="block text-[10.5px] text-text-muted mb-1.5">ධාරාව</label>
-          <div className="grid grid-cols-5 max-sm:grid-cols-3 gap-2">
-            {(Object.entries(STREAMS) as [Stream, typeof STREAMS[Stream]][]).map(([key, s]) => (
-              <button
-                key={key}
-                onClick={() => setStream(key)}
-                className={`border-[1.5px] rounded-[var(--radius-sm)] p-2.5 text-center cursor-pointer transition-all text-[11px] leading-tight ${
-                  stream === key
-                    ? 'border-gold bg-gold-bg'
-                    : 'border-border-dim hover:border-gold'
-                }`}
-              >
-                <span className="text-[22px] block mb-1">{s.icon}</span>
-                {s.name.split(' ')[0]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* District & Year */}
-        <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-2.5 mb-2.5">
-          <Select
-            label="දිස්ත්‍රික්කය"
-            value={district}
-            onChange={(e) => setDistrict(e.target.value)}
-            options={DISTRICTS.map((d) => ({ value: d.si, label: d.si }))}
-          />
-          <Select
-            label="විභාග වර්ෂය"
-            options={[
-              { value: '2026', label: '2026' },
-              { value: '2027', label: '2027' },
-            ]}
-          />
-        </div>
-
-        {/* School */}
-        <div className="mb-4">
-          <Input label="පාසල" placeholder="ඔබේ පාසල" value={school} onChange={(e) => setSchool(e.target.value)} />
-        </div>
-
-        <Button fullWidth className="py-3 text-[13px]" isLoading={isLoading} onClick={handleRegister}>
-          ලියාපදිංචිය ✓
-        </Button>
       </div>
     </div>
   );

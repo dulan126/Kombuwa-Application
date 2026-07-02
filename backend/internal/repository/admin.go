@@ -1,4 +1,4 @@
-package repository
+﻿package repository
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/kombuwaedu/api/internal/model"
+	"github.com/miedvance/api/internal/model"
 )
 
 // AdminRepo handles all admin-specific DB queries.

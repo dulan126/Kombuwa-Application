@@ -1,4 +1,4 @@
-import type { Stream } from '@/types/auth';
+﻿import type { Stream } from '@/types/auth';
 
 // ─── Stream Configuration ────────────────────────────────────────────────────
 
@@ -115,7 +115,7 @@ export const DEMO_TOPICS: Record<string, string[]> = {
 // ─── API Configuration ───────────────────────────────────────────────────────
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
-export const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || 'Kombuwaedu';
+export const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || 'MIEDVANCE';
 
 // ─── Paper Type Constants ────────────────────────────────────────────────────
 

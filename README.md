@@ -1,9 +1,9 @@
-# Kombuwaedu — Full Stack Platform
+﻿# MIEDVANCE — Full Stack Platform
 
 ## Project Structure
 
 ```
-kombuwaedu-project/
+MIEDVANCE-project/
   frontend/
     index.html           ← Complete SPA (open directly or serve via web server)
   backend/               ← Node.js REST API (see backend/README.md)

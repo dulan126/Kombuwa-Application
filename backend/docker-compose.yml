@@ -1,8 +1,8 @@
-services:
+﻿services:
   api:
     build: .
     ports:
-      - "3000:3000"
+      - "4000:4000"
     env_file: .env
     environment:
       DB_HOST: postgres
@@ -20,8 +20,8 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: kombuwaedu
-      POSTGRES_USER: kombuwaedu_user
+      POSTGRES_DB: miedvance
+      POSTGRES_USER: miedvance_user
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
@@ -29,7 +29,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kombuwaedu_user -d kombuwaedu"]
+      test: ["CMD-SHELL", "pg_isready -U miedvance_user -d miedvance"]
       interval: 5s
       timeout: 5s
       retries: 5

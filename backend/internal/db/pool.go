@@ -1,4 +1,4 @@
-package db
+﻿package db
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/kombuwaedu/api/internal/config"
+	"github.com/miedvance/api/internal/config"
 )
 
 // New creates a pgxpool matching the Node.js pg pool settings:

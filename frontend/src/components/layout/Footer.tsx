@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 export function Footer() {
   return (
@@ -7,10 +7,10 @@ export function Footer() {
         <div className="w-8 h-8 rounded-[7px] gradient-gold flex items-center justify-center font-bold text-[15px] text-white">
           K
         </div>
-        <span className="text-[17px] font-bold text-gold">Kombuwaedu</span>
+        <span className="text-[17px] font-bold text-gold">MIEDVANCE</span>
       </div>
       <p className="text-[11px] text-text-muted">
-        © {new Date().getFullYear()} Kombuwaedu.com · ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ, SRP, Q&A වේදිකාව
+        © {new Date().getFullYear()} MIEDVANCE.com · ශ්‍රී ලංකාවේ ප්‍රමුඛ අ/පෙළ MCQ, SRP, Q&A වේදිකාව
       </p>
     </footer>
   );

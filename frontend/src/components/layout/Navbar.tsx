@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button';
 
 const NAV_LINKS = [
   { href: '/', label: 'මුල් පිටුව', id: 'home', requiresAuth: false },
-  { href: '/papers', label: '📋 ප්‍රශ්න පත්‍ර', id: 'dashboard', requiresAuth: true },
+  { href: '/dashboard', label: '📋 Dashboard', id: 'dashboard', requiresAuth: true },
   { href: '/marking-scheme', label: '📖 ලකුණු ක්‍රමය', id: 'marking', requiresAuth: true },
   { href: '/rankings', label: '🏆 ශ්‍රේණිගත', id: 'rankings', requiresAuth: true },
   { href: '/forum', label: '💬 ප්‍රශ්නෝත්තර', id: 'qa', requiresAuth: true },
@@ -31,7 +31,7 @@ export function Navbar() {
 
   const handleDemoLogin = async () => {
     await demoLogin('Demo Student', 'phy', '12', 'Colombo');
-    router.push('/papers');
+    router.push('/dashboard');
   };
 
   return (
@@ -39,9 +39,9 @@ export function Navbar() {
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2 cursor-pointer mr-5 shrink-0 no-underline">
         <div className="w-8 h-8 rounded-[7px] gradient-gold flex items-center justify-center font-bold text-[15px] text-white">
-          K
+          M
         </div>
-        <span className="text-[17px] font-bold text-gold">Kombuwaedu</span>
+        <span className="text-[17px] font-bold text-gold">MIEDVANCE</span>
       </Link>
 
       {/* Desktop Nav Links */}

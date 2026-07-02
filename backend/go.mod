@@ -1,4 +1,4 @@
-module github.com/kombuwaedu/api
+module github.com/miedvance/api
 
 go 1.25.0
 

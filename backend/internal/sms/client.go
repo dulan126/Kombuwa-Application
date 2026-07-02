@@ -1,4 +1,4 @@
-package sms
+﻿package sms
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/kombuwaedu/api/internal/config"
+	"github.com/miedvance/api/internal/config"
 )
 
 // Client sends OTP SMS messages. In development it logs to console; in
@@ -41,7 +41,7 @@ func (c *Client) Send(ctx context.Context, mobile, code string) error {
 		"apiKey":  c.cfg.SMSApiKey,
 		"sender":  c.cfg.SMSSenderID,
 		"to":      mobile,
-		"message": fmt.Sprintf("ඔබේ Kombuwaedu OTP: %s. %d min valid. Share with nobody.", code, c.cfg.OTPExpireMinutes),
+		"message": fmt.Sprintf("ඔබේ MIEDVANCE OTP: %s. %d min valid. Share with nobody.", code, c.cfg.OTPExpireMinutes),
 	}
 
 	body, err := json.Marshal(payload)

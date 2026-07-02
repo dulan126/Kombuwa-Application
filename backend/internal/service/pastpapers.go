@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/kombuwaedu/api/internal/httputil"
-	"github.com/kombuwaedu/api/internal/model"
-	"github.com/kombuwaedu/api/internal/repository"
+	"github.com/miedvance/api/internal/httputil"
+	"github.com/miedvance/api/internal/model"
+	"github.com/miedvance/api/internal/repository"
 )
 
 // PPListFilterFromQuery is a convenience constructor for handler use.

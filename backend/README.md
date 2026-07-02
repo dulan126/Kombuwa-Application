@@ -1,6 +1,6 @@
-# Kombuwaedu API (Go)
+﻿# MIEDVANCE API (Go)
 
-REST API for the Kombuwaedu A/L exam-prep platform — rewritten from Node 20/Express to Go for
+REST API for the MIEDVANCE A/L exam-prep platform — rewritten from Node 20/Express to Go for
 improved performance and binary deployability.
 
 ---
@@ -22,8 +22,8 @@ Prerequisites: Go 1.25+, PostgreSQL 15, Redis 7.
 cp .env.example .env
 
 # 2. Create DB and apply schema
-psql -U postgres -c "CREATE DATABASE kombuwaedu; CREATE USER kombuwaedu_user WITH PASSWORD 'yourpw';"
-psql -U kombuwaedu_user -d kombuwaedu -f sql/schema.sql
+psql -U postgres -c "CREATE DATABASE MIEDVANCE; CREATE USER MIEDVANCE_user WITH PASSWORD 'yourpw';"
+psql -U MIEDVANCE_user -d MIEDVANCE -f sql/schema.sql
 
 # 3. Start Redis
 redis-server
@@ -40,8 +40,8 @@ make run
 | `NODE_ENV` | `development` | | `production` enables JSON file logging |
 | `DB_HOST` | `localhost` | | PostgreSQL host |
 | `DB_PORT` | `5432` | | PostgreSQL port |
-| `DB_NAME` | `kombuwaedu` | | Database name |
-| `DB_USER` | `kombuwaedu_user` | | DB username |
+| `DB_NAME` | `MIEDVANCE` | | Database name |
+| `DB_USER` | `MIEDVANCE_user` | | DB username |
 | `DB_PASSWORD` | — | **Yes** | DB password |
 | `REDIS_URL` | `redis://localhost:6379` | | Redis connection URL |
 | `JWT_SECRET` | — | **Yes (≥32 chars)** | HMAC secret for access tokens |
@@ -50,7 +50,7 @@ make run
 | `JWT_REFRESH_EXPIRES_IN` | `30d` | | Refresh token lifetime |
 | `SMS_API_URL` | | | Dialog/Mobitel SMS API endpoint |
 | `SMS_API_KEY` | | | SMS API key |
-| `SMS_SENDER_ID` | `KOMBUWAEDU` | | SMS sender name |
+| `SMS_SENDER_ID` | `MIEDVANCE` | | SMS sender name |
 | `UPLOAD_DIR` | `./uploads` | | Root directory for file uploads |
 | `MAX_FILE_SIZE_MB` | `10` | | Upload size limit per file |
 | `CORS_ORIGIN` | `http://localhost:8080` | | Comma-separated allowed origins |

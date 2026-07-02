@@ -1,4 +1,4 @@
-package httputil_test
+﻿package httputil_test
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombuwaedu/api/internal/httputil"
+	"github.com/miedvance/api/internal/httputil"
 )
 
 func TestJSON_SetsContentType(t *testing.T) {

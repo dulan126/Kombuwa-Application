@@ -1,4 +1,4 @@
-package middleware
+﻿package middleware
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/kombuwaedu/api/internal/httputil"
-	"github.com/kombuwaedu/api/internal/model"
+	"github.com/miedvance/api/internal/httputil"
+	"github.com/miedvance/api/internal/model"
 )
 
 type contextKey string
@@ -149,13 +149,13 @@ func extractBearer(r *http.Request) (string, error) {
 	return h[7:], nil
 }
 
-type kombuwaClaims struct {
+type miedvanceClaims struct {
 	jwt.RegisteredClaims
 	Role string `json:"role,omitempty"`
 }
 
-func (a *Auth) parseClaims(tokenStr string, secret []byte) (*kombuwaClaims, error) {
-	tok, err := jwt.ParseWithClaims(tokenStr, &kombuwaClaims{}, func(t *jwt.Token) (any, error) {
+func (a *Auth) parseClaims(tokenStr string, secret []byte) (*miedvanceClaims, error) {
+	tok, err := jwt.ParseWithClaims(tokenStr, &miedvanceClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
@@ -164,7 +164,7 @@ func (a *Auth) parseClaims(tokenStr string, secret []byte) (*kombuwaClaims, erro
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := tok.Claims.(*kombuwaClaims); ok {
+	if claims, ok := tok.Claims.(*miedvanceClaims); ok {
 		return claims, nil
 	}
 	return nil, jwt.ErrTokenInvalidClaims

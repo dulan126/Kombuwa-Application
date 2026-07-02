@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"context"
@@ -14,11 +14,11 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/kombuwaedu/api/internal/config"
-	"github.com/kombuwaedu/api/internal/httputil"
-	"github.com/kombuwaedu/api/internal/model"
-	"github.com/kombuwaedu/api/internal/repository"
-	"github.com/kombuwaedu/api/internal/sms"
+	"github.com/miedvance/api/internal/config"
+	"github.com/miedvance/api/internal/httputil"
+	"github.com/miedvance/api/internal/model"
+	"github.com/miedvance/api/internal/repository"
+	"github.com/miedvance/api/internal/sms"
 )
 
 // AuthService implements all auth business logic.
@@ -320,8 +320,8 @@ func (s *AuthService) sendOTP(ctx context.Context, mobile, purpose string) error
 	return nil
 }
 
-// kombuwaClaims mirrors the middleware type for internal use.
-type kombuwaClaims struct {
+// miedvanceClaims mirrors the middleware type for internal use.
+type miedvanceClaims struct {
 	jwt.RegisteredClaims
 	Role string `json:"role,omitempty"`
 }
@@ -329,7 +329,7 @@ type kombuwaClaims struct {
 func (s *AuthService) issueTokens(userID uuid.UUID, role model.UserRole) (*TokenPair, error) {
 	now := time.Now()
 
-	accessClaims := kombuwaClaims{
+	accessClaims := miedvanceClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -343,7 +343,7 @@ func (s *AuthService) issueTokens(userID uuid.UUID, role model.UserRole) (*Token
 		return nil, fmt.Errorf("sign access token: %w", err)
 	}
 
-	refreshClaims := kombuwaClaims{
+	refreshClaims := miedvanceClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -371,8 +371,8 @@ func tokenExpiry(tokenStr, secret string) (time.Time, error) {
 	return claims.ExpiresAt.Time, nil
 }
 
-func parseTokenClaims(tokenStr, secret string) (*kombuwaClaims, error) {
-	tok, err := jwt.ParseWithClaims(tokenStr, &kombuwaClaims{}, func(t *jwt.Token) (any, error) {
+func parseTokenClaims(tokenStr, secret string) (*miedvanceClaims, error) {
+	tok, err := jwt.ParseWithClaims(tokenStr, &miedvanceClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
@@ -381,7 +381,7 @@ func parseTokenClaims(tokenStr, secret string) (*kombuwaClaims, error) {
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := tok.Claims.(*kombuwaClaims); ok {
+	if claims, ok := tok.Claims.(*miedvanceClaims); ok {
 		return claims, nil
 	}
 	return nil, jwt.ErrTokenInvalidClaims
