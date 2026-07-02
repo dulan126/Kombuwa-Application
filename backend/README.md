@@ -1,238 +1,157 @@
-# Kombuwaedu Backend API
+# Kombuwaedu API (Go)
 
-**Node.js · Express · PostgreSQL · Redis**  
-Sri Lanka G.C.E. A/L MCQ, SRP, Past Papers & Q&A Platform
+REST API for the Kombuwaedu A/L exam-prep platform — rewritten from Node 20/Express to Go for
+improved performance and binary deployability.
 
 ---
 
-## Quick Start
+## Quick start (Docker)
 
 ```bash
-# 1. Install dependencies
-cd kombuwaedu-backend
-npm install
+cp .env.example .env        # fill in DB_PASSWORD and JWT secrets
+make docker-up              # starts api + postgres + redis
+curl http://localhost:3000/health
+```
 
-# 2. Configure environment
+## Local development
+
+Prerequisites: Go 1.25+, PostgreSQL 15, Redis 7.
+
+```bash
+# 1. Copy and edit environment
 cp .env.example .env
-# Edit .env — set DB credentials, Redis URL, JWT secrets, SMS keys
 
-# 3. Create database
-psql -U postgres -c "CREATE DATABASE kombuwaedu;"
-psql -U postgres -c "CREATE USER kombuwaedu_user WITH PASSWORD 'your_password';"
-psql -U postgres -c "GRANT ALL ON DATABASE kombuwaedu TO kombuwaedu_user;"
+# 2. Create DB and apply schema
+psql -U postgres -c "CREATE DATABASE kombuwaedu; CREATE USER kombuwaedu_user WITH PASSWORD 'yourpw';"
+psql -U kombuwaedu_user -d kombuwaedu -f sql/schema.sql
 
-# 4. Run migrations (creates all tables)
-npm run migrate
+# 3. Start Redis
+redis-server
 
-# 5. Seed subjects, topics, admin user
-npm run seed
-
-# 6. Start server
-npm run dev        # development (nodemon)
-npm start          # production
+# 4. Run
+make run
 ```
 
----
+## Environment variables
 
-## Stack
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `PORT` | `3000` | | HTTP listen port |
+| `NODE_ENV` | `development` | | `production` enables JSON file logging |
+| `DB_HOST` | `localhost` | | PostgreSQL host |
+| `DB_PORT` | `5432` | | PostgreSQL port |
+| `DB_NAME` | `kombuwaedu` | | Database name |
+| `DB_USER` | `kombuwaedu_user` | | DB username |
+| `DB_PASSWORD` | — | **Yes** | DB password |
+| `REDIS_URL` | `redis://localhost:6379` | | Redis connection URL |
+| `JWT_SECRET` | — | **Yes (≥32 chars)** | HMAC secret for access tokens |
+| `JWT_EXPIRES_IN` | `30d` | | Access token lifetime (`30d`, `24h`, etc.) |
+| `JWT_REFRESH_SECRET` | `JWT_SECRET` | | HMAC secret for refresh tokens |
+| `JWT_REFRESH_EXPIRES_IN` | `30d` | | Refresh token lifetime |
+| `SMS_API_URL` | | | Dialog/Mobitel SMS API endpoint |
+| `SMS_API_KEY` | | | SMS API key |
+| `SMS_SENDER_ID` | `KOMBUWAEDU` | | SMS sender name |
+| `UPLOAD_DIR` | `./uploads` | | Root directory for file uploads |
+| `MAX_FILE_SIZE_MB` | `10` | | Upload size limit per file |
+| `CORS_ORIGIN` | `http://localhost:8080` | | Comma-separated allowed origins |
+| `OTP_EXPIRE_MINUTES` | `5` | | OTP validity window |
+| `OTP_RESEND_COOLDOWN_SECONDS` | `60` | | Redis cooldown between OTP resends |
+| `OTP_MAX_ATTEMPTS` | `5` | | Max wrong OTP attempts before lockout |
 
-| Layer       | Technology                            |
-|-------------|---------------------------------------|
-| Runtime     | Node.js 20 LTS                        |
-| Framework   | Express 4                             |
-| Database    | PostgreSQL 15                         |
-| Cache/LB    | Redis 7                               |
-| Auth        | JWT (RS256) + bcrypt (cost 12)        |
-| SMS OTP     | Dialog Axiata / Mobitel API           |
-| File upload | Multer → local disk (swap for S3)     |
-| Scheduler   | node-cron                             |
-| Logging     | Winston                               |
-| Validation  | express-validator                     |
+## API routes
 
----
+### Auth `/api/v1/auth`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/register` | — | Register (sends OTP) |
+| POST | `/verify-otp` | — | Verify OTP → issue tokens |
+| POST | `/login` | — | Login with password |
+| POST | `/logout` | Bearer | Blocklist access token |
+| POST | `/resend-otp` | — | Resend OTP (rate-limited) |
+| POST | `/forgot-password` | — | Send reset OTP (enumeration-safe) |
+| POST | `/reset-password` | — | Reset password via OTP |
+| POST | `/refresh` | — | Exchange refresh token for new access token |
+| GET | `/me` | Bearer | Get own profile |
+| PATCH | `/me` | Bearer | Update name / school / district / examYear |
 
-## Project Structure
+### Papers `/api/v1/papers`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/` | Bearer | List papers (filtered by type/subject/grade) |
+| GET | `/{id}/questions` | Bearer | Start exam — questions without answers |
+| POST | `/{id}/submit` | Bearer | Submit answers → server-side score |
+| GET | `/{id}/marking-scheme` | Bearer | Answers + student review (if ms_available) |
+| GET | `/{id}/rankings` | Bearer | Leaderboard (Redis-cached 5 min) |
+| POST | `/` | Admin | Create paper + questions |
+| PATCH | `/{id}/marking-scheme` | Admin | Release marking scheme |
 
+### Past Papers `/api/v1/past-papers`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/` | Bearer | Subject→topic→year tree |
+| GET | `/{id}/questions` | Bearer | MCQ questions (answers if MS uploaded) |
+| GET | `/{id}/essay-pdf` | Bearer | Stream essay PDF |
+| GET | `/{id}/marking-scheme-pdf` | Bearer | Stream marking scheme PDF |
+| POST | `/` | Admin | Create past-paper record |
+| POST | `/{id}/essay-pdf` | Admin | Upload essay PDF |
+| POST | `/{id}/marking-scheme-pdf` | Admin | Upload marking scheme PDF |
+| POST | `/{id}/questions` | Admin | Bulk upload MCQ questions |
+| POST | `/{id}/answer-key` | Admin | Upload MCQ answer key |
+
+### Forum `/api/v1/forum`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/threads` | Bearer | List threads (filter by subject/status) |
+| POST | `/threads` | Bearer | Create thread (multipart: up to 3 images) |
+| GET | `/threads/{id}` | Bearer | Thread detail + replies |
+| POST | `/threads/{id}/replies` | Bearer | Add reply |
+| PATCH | `/replies/{id}/verify` | Teacher/Admin | Single verified reply + resolve thread |
+
+### Admin `/api/v1/admin`
+| Method | Path | Description |
+|---|---|---|
+| GET | `/stats` | Dashboard aggregate counts |
+| GET | `/papers` | All papers with attempt counts |
+| PATCH | `/papers/{id}/publish` | Toggle is_published |
+| POST | `/papers/{id}/trigger-rankings` | Manual ranking recompute |
+| GET | `/users` | Student list (filter stream/grade, paged 50) |
+| GET | `/subjects` | Subjects with nested topics |
+| POST | `/topics` | Create topic |
+
+### Health
 ```
-src/
-  server.js              ← Express app + boot
-  config/
-    db.js                ← PostgreSQL pool
-    redis.js             ← Redis client
-    migrate.js           ← Run: npm run migrate
-    seed.js              ← Run: npm run seed
-  middleware/
-    auth.js              ← JWT authenticate, requireRole
-    errors.js            ← errorHandler, validate, notFound
-    upload.js            ← Multer configs (images, PDFs)
-  routes/
-    auth.routes.js       ← /api/v1/auth/*
-    papers.routes.js     ← /api/v1/papers/*
-    pastpapers.routes.js ← /api/v1/past-papers/*
-    forum.routes.js      ← /api/v1/forum/*
-    admin.routes.js      ← /api/v1/admin/*
-  services/
-    auth.service.js      ← OTP, JWT, bcrypt helpers
-    ranking.service.js   ← Score → rank computation
-    cron.service.js      ← Scheduled jobs
-  utils/
-    logger.js            ← Winston logger
-uploads/
-  papers/                ← Question images
-  essays/                ← Essay question PDFs
-  marking-schemes/       ← Marking scheme PDFs
-  forum-images/          ← Q&A photo attachments
-logs/
-  combined.log
-  error.log
-```
-
----
-
-## API Reference
-
-### Authentication `POST /api/v1/auth/`
-
-| Method | Path               | Auth | Description                        |
-|--------|--------------------|------|------------------------------------|
-| POST   | `/register`        | —    | Register student, send OTP         |
-| POST   | `/verify-otp`      | —    | Verify OTP, activate account       |
-| POST   | `/login`           | —    | Login, receive JWT                 |
-| POST   | `/logout`          | JWT  | Revoke token                       |
-| POST   | `/forgot-password` | —    | Send reset OTP                     |
-| POST   | `/reset-password`  | —    | Verify OTP + set new password      |
-| GET    | `/me`              | JWT  | Get own profile                    |
-| PATCH  | `/me`              | JWT  | Update name, school, district      |
-
-**Register body:**
-```json
-{
-  "mobile": "+94771234567",
-  "name": "Amaya Silva",
-  "password": "SecurePass123",
-  "stream": "phy",
-  "grade": "12",
-  "district": "gampaha",
-  "school": "Ananda College",
-  "exam_year": 2026
-}
-```
-
----
-
-### Papers `GET /api/v1/papers/`
-
-| Method | Path                          | Auth  | Description                    |
-|--------|-------------------------------|-------|--------------------------------|
-| GET    | `/`                           | JWT   | List papers (filter by type, subject, grade) |
-| GET    | `/:id/questions`              | JWT   | Get questions (no answers)     |
-| POST   | `/:id/submit`                 | JWT   | Submit answers, get score      |
-| GET    | `/:id/marking-scheme`         | JWT   | Get answers (if ms_available)  |
-| GET    | `/:id/rankings`               | JWT   | Leaderboard for a paper        |
-| POST   | `/`                           | Admin | Create paper + questions       |
-| PATCH  | `/:id/marking-scheme`         | Admin | Release marking scheme         |
-
-**Submit body:** `{ "answers": { "0": "A", "1": "C", "2": "B", ... } }`
-
-**Rankings query:** `?district=gampaha&page=1&limit=50`
-
----
-
-### Past Papers `GET /api/v1/past-papers/`
-
-| Method | Path                        | Auth  | Description                          |
-|--------|-----------------------------|-------|--------------------------------------|
-| GET    | `/`                         | JWT   | Subject → Topic → Year tree          |
-| GET    | `/:id/questions`            | JWT   | MCQ questions (answers if uploaded)  |
-| GET    | `/:id/essay-pdf`            | JWT   | Stream essay PDF                     |
-| GET    | `/:id/marking-scheme-pdf`   | JWT   | Stream marking scheme PDF            |
-| POST   | `/`                         | Admin | Create past paper record             |
-| POST   | `/:id/questions`            | Admin | Bulk upload MCQ questions            |
-| POST   | `/:id/answer-key`           | Admin | Upload MCQ answer key                |
-| POST   | `/:id/essay-pdf`            | Admin | Upload essay PDF (multipart)         |
-| POST   | `/:id/marking-scheme-pdf`   | Admin | Upload marking scheme PDF            |
-
-**Filter:** `?subject=m&grade=13&year=2023`
-
----
-
-### Forum `GET /api/v1/forum/`
-
-| Method | Path                          | Auth    | Description              |
-|--------|-------------------------------|---------|--------------------------|
-| GET    | `/threads`                    | JWT     | List threads             |
-| GET    | `/threads/:id`                | JWT     | Thread + replies         |
-| POST   | `/threads`                    | JWT     | Post question (+ images) |
-| POST   | `/threads/:id/replies`        | JWT     | Post reply               |
-| PATCH  | `/replies/:id/verify`         | Teacher | Mark reply verified      |
-
-**Thread POST:** `multipart/form-data` — fields: `subject_id`, `title`, `body`, `images[]`
-
----
-
-### Admin `GET /api/v1/admin/`
-
-| Method | Path                            | Auth  | Description              |
-|--------|---------------------------------|-------|--------------------------|
-| GET    | `/stats`                        | Admin | DAU/WAU/MAU + counts     |
-| GET    | `/papers`                       | Admin | All papers with attempts |
-| PATCH  | `/papers/:id/publish`           | Admin | Publish / unpublish      |
-| POST   | `/papers/:id/trigger-rankings`  | Admin | Manually compute ranks   |
-| GET    | `/users`                        | Admin | Student list             |
-| GET    | `/subjects`                     | Admin | Subjects + topics        |
-| POST   | `/topics`                       | Admin | Add topic                |
-
----
-
-## Scheduled Jobs (Automatic)
-
-| Job                     | Schedule           | Action                                     |
-|-------------------------|--------------------|--------------------------------------------|
-| SRP Ranking Compute     | Every 5 minutes    | Ranks any SRP whose window just closed     |
-| Marking Scheme Release  | 00:00 SLST (daily) | Sets ms_available=TRUE for yesterday's papers |
-| OTP Cleanup             | 01:00 UTC (daily)  | Deletes expired OTP records               |
-
----
-
-## Security
-
-- Passwords: **bcrypt cost 12**
-- Tokens: **JWT (HS256)**, blocklisted in Redis on logout
-- Scoring: **server-side only** — client answers never trusted
-- Rate limits: OTP 10/15min, Login 20/15min, Global 500/15min
-- CORS: whitelist only
-- Helmet: security headers
-- Input: express-validator on every route
-- SQL: parameterised queries only (no string interpolation)
-
----
-
-## Deployment
-
-```bash
-# Environment
-NODE_ENV=production
-PORT=3000
-
-# PostgreSQL connection pool: 20 connections
-# Redis: enable persistence (appendonly yes) for leaderboard durability
-
-# Serve static uploads through nginx in production:
-# location /uploads/ { alias /var/www/kombuwaedu/uploads/; }
-
-# Process manager
-npm install -g pm2
-pm2 start src/server.js --name kombuwaedu-api --instances 2
-pm2 save && pm2 startup
+GET /health   → {"status":"ok","timestamp":"...","env":"development"}
 ```
 
----
+## Cron jobs
 
-## Admin Credentials (After Seed)
+| Schedule | Job | Description |
+|---|---|---|
+| `*/5 * * * *` | SRP Ranking | Rank papers whose window closed in last 5 min |
+| `30 18 * * *` | Marking Scheme | Release MS for yesterday's papers (SLST midnight) |
+| `0 1 * * *` | OTP Cleanup | Delete expired OTPs older than 1 hour |
 
-| Field    | Value            |
-|----------|------------------|
-| Mobile   | +94770000000     |
-| Password | Admin@2026!      |
+## Logging
 
-**Change this immediately in production.**
+- **Development**: coloured console output via `zap.NewDevelopment()`.
+- **Production** (`NODE_ENV=production`): JSON to stdout + `logs/combined.log` (Info+) + `logs/error.log` (Error+). File rotation is handled by Docker's `--log-opt max-size` / `logrotate(8)` on bare metal.
+
+## Architecture notes
+
+| Decision | Why |
+|---|---|
+| chi router | Stdlib-compatible, same middleware model as Express |
+| Hand-written pgx queries | sqlc not available on CI — equally type-safe, avoids codegen step |
+| UUID scanned as string | Avoids pgtype codec complexity; portable across pgx versions |
+| `redisclient` package name | Avoids import collision with `go-redis/v9` package alias `redis` |
+| Refresh token one-time-use | Stricter than Node (which never revokes refresh tokens); adds security |
+| `AppError` pattern | Services return structured errors with HTTP status; handlers don't need switch cases |
+| Async ranking goroutine | Mirrors Node `computeRankings().catch()` — submit returns fast, rank computed after |
+| Disk-local uploads | Same limitation as Node service; S3/GCS recommended for multi-replica deployments |
+
+## Deviations from Node service
+
+1. **`POST /api/v1/auth/refresh`** — added (was missing; refresh tokens were issued but never consumable).
+2. **Refresh tokens are one-time-use** — old token blocklisted on use (Node never revoked them).
+
+All other API behaviour, response shapes, status codes, and business rules are preserved exactly.

@@ -1,0 +1,6 @@
+.env
+uploads/
+logs/
+*.exe
+*.test
+vendor/
