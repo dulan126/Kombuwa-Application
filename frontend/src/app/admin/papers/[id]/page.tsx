@@ -1,0 +1,372 @@
+'use client';
+
+import { use, useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  adminService,
+  type AdminPaper,
+  type PaperQuestion,
+  type PoolQuestion,
+  type PoolQuestionInput,
+  type Subject,
+} from '@/services/admin.service';
+import { isApiError } from '@/services/api-client';
+
+// ── Question form (shared for create / edit) ──────────────────────────────────
+
+const EMPTY_Q: PoolQuestionInput = {
+  question_text: '', option_a: '', option_b: '', option_c: '', option_d: '',
+  correct_option: 'A', explanation: '', subject_id: '', slug: '',
+};
+
+function QuestionForm({
+  initial,
+  onSave,
+  onCancel,
+  saving,
+  subjects,
+}: {
+  initial: PoolQuestionInput;
+  onSave: (q: PoolQuestionInput) => void;
+  onCancel: () => void;
+  saving: boolean;
+  subjects: Subject[];
+}) {
+  const [q, setQ] = useState<PoolQuestionInput>(initial);
+  const set = (k: keyof PoolQuestionInput, v: string) => setQ(prev => ({ ...prev, [k]: v }));
+
+  return (
+    <div className="bg-dark rounded-sm p-4 flex flex-col gap-3 text-[12.5px]">
+      <textarea
+        className="admin-input resize-none"
+        rows={2}
+        placeholder="Question text"
+        value={q.question_text}
+        onChange={e => set('question_text', e.target.value)}
+      />
+      {(['a','b','c','d'] as const).map(opt => (
+        <div key={opt} className="flex items-center gap-2">
+          <label className="w-4 font-bold text-text-muted uppercase">{opt}</label>
+          <input
+            className="admin-input flex-1"
+            placeholder={`Option ${opt.toUpperCase()}`}
+            value={q[`option_${opt}` as keyof PoolQuestionInput] as string}
+            onChange={e => set(`option_${opt}` as keyof PoolQuestionInput, e.target.value)}
+          />
+        </div>
+      ))}
+      <div className="flex items-center gap-3">
+        <label className="text-text-muted text-[11.5px] font-semibold">Correct:</label>
+        <select className="admin-input w-20" value={q.correct_option} onChange={e => set('correct_option', e.target.value)}>
+          {['A','B','C','D'].map(o => <option key={o}>{o}</option>)}
+        </select>
+      </div>
+      <input className="admin-input" placeholder="Explanation (optional)" value={q.explanation} onChange={e => set('explanation', e.target.value)} />
+      <select className="admin-input" value={q.subject_id ?? ''} onChange={e => set('subject_id', e.target.value)}>
+        <option value="">— subject (optional) —</option>
+        {subjects.map(s => (
+          <option key={s.id} value={s.id}>{s.name_si} ({s.id})</option>
+        ))}
+      </select>
+      <input className="admin-input" placeholder="Slug (auto-generated if blank)" value={q.slug} onChange={e => set('slug', e.target.value)} />
+      <div className="flex gap-2 pt-1">
+        <button
+          onClick={() => onSave(q)}
+          disabled={saving}
+          className="px-4 py-1.5 rounded-sm bg-brand text-white text-[12px] font-semibold hover:bg-brand-dark transition-colors disabled:opacity-50 cursor-pointer border-none"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button onClick={onCancel} className="px-4 py-1.5 rounded-sm bg-dark border border-border-dim text-text-muted text-[12px] hover:border-gold transition-colors cursor-pointer">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Pool picker modal ─────────────────────────────────────────────────────────
+
+function PoolPicker({
+  onAttach,
+  onClose,
+}: {
+  onAttach: (q: PoolQuestion) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState<PoolQuestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [attachingId, setAttachingId] = useState<number | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setLoading(true);
+    adminService.listPoolQuestions({ slug_contains: debouncedSearch, limit: 20 })
+      .then(r => setResults(r.questions))
+      .catch(() => setResults([]))
+      .finally(() => setLoading(false));
+  }, [debouncedSearch]);
+
+  async function handleAttach(q: PoolQuestion) {
+    setAttachingId(q.id);
+    try {
+      await onAttach(q);
+    } finally {
+      setAttachingId(null);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-surface rounded-base w-full max-w-lg shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-border-dim flex items-center justify-between">
+          <h3 className="font-bold text-text-primary text-[13.5px]">Add from Question Pool</h3>
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer text-[18px]">×</button>
+        </div>
+        <div className="p-4">
+          <input
+            className="admin-input w-full mb-3"
+            placeholder="Search by slug…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            autoFocus
+          />
+          {loading ? (
+            <div className="py-4 flex justify-center">
+              <div className="w-6 h-6 rounded-full border-2 border-gold border-t-transparent animate-spin" />
+            </div>
+          ) : results.length === 0 ? (
+            <p className="text-text-muted text-[12.5px] text-center py-4">No questions found.</p>
+          ) : (
+            <ul className="space-y-2 max-h-72 overflow-y-auto">
+              {results.map(q => (
+                <li key={q.id} className="flex items-start gap-3 p-3 rounded-sm bg-dark hover:border-gold border border-transparent transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] font-medium text-text-primary truncate">{q.question_text}</div>
+                    <div className="text-[10.5px] text-text-muted mt-0.5">{q.slug}</div>
+                  </div>
+                  <button
+                    onClick={() => handleAttach(q)}
+                    disabled={attachingId === q.id}
+                    className="shrink-0 px-3 py-1 rounded-sm bg-brand text-white text-[11.5px] font-semibold hover:bg-brand-dark transition-colors disabled:opacity-50 cursor-pointer border-none"
+                  >
+                    {attachingId === q.id ? '…' : 'Attach'}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+type AddMode = null | 'pool' | 'new';
+
+export default function PaperBuilderPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: paperId } = use(params);
+  const { user } = useAuth();
+  const canDelete = user?.role === 'admin';
+
+  const [paper, setPaper] = useState<AdminPaper | null>(null);
+  const [questions, setQuestions] = useState<PaperQuestion[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addMode, setAddMode] = useState<AddMode>(null);
+  const [savingNew, setSavingNew] = useState(false);
+  const [detachingId, setDetachingId] = useState<number | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    adminService.listSubjects().then(setSubjects).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    Promise.all([adminService.listPapers(), adminService.listPaperQuestions(paperId)])
+      .then(([papers, qs]) => {
+        setPaper(papers.find(p => p.id === paperId) ?? null);
+        setQuestions(qs);
+      })
+      .catch(() => setError('Failed to load paper'))
+      .finally(() => setLoading(false));
+  }, [paperId]);
+
+  async function handleAttachFromPool(q: PoolQuestion) {
+    try {
+      const pq = await adminService.attachQuestion(paperId, { question_id: q.id });
+      setQuestions(prev => [...prev, pq]);
+      setAddMode(null);
+    } catch (err) {
+      alert(isApiError(err) ? err.message : 'Failed to attach question');
+    }
+  }
+
+  async function handleCreateAndAttach(input: PoolQuestionInput) {
+    setSavingNew(true);
+    try {
+      const pq = await adminService.attachQuestion(paperId, input);
+      setQuestions(prev => [...prev, pq]);
+      setAddMode(null);
+    } catch (err) {
+      alert(isApiError(err) ? err.message : 'Failed to create question');
+    } finally {
+      setSavingNew(false);
+    }
+  }
+
+  async function handleDetach(q: PaperQuestion) {
+    if (!confirm('Remove this question from the paper?')) return;
+    setDetachingId(q.id);
+    try {
+      await adminService.detachQuestion(paperId, q.id);
+      setQuestions(prev => prev.filter(p => p.id !== q.id));
+    } catch (err) {
+      alert(isApiError(err) ? err.message : 'Failed to detach');
+    } finally {
+      setDetachingId(null);
+    }
+  }
+
+  async function handleTogglePublish() {
+    if (!paper) return;
+    try {
+      await adminService.publishPaper(paper.id, !paper.is_published);
+      setPaper(p => p ? { ...p, is_published: !p.is_published } : p);
+    } catch (err) {
+      alert(isApiError(err) ? err.message : 'Failed to update paper');
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <div className="w-8 h-8 rounded-full border-2 border-gold border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-danger text-[13px]">{error}</div>;
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <Link href="/admin/papers" className="text-[12px] text-text-muted hover:text-text-primary no-underline transition-colors">
+            ← Back to Papers
+          </Link>
+          <h1 className="mt-2 text-[1.3rem] font-bold text-text-primary" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+            {paper?.title ?? 'Paper Builder'}
+          </h1>
+          <div className="flex items-center gap-3 mt-1 text-[12px] text-text-muted">
+            <span className="uppercase font-medium">{paper?.type}</span>
+            <span>·</span>
+            <span>Grade {paper?.grade}</span>
+            <span>·</span>
+            <span>{questions.length} question{questions.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+        <button
+          onClick={handleTogglePublish}
+          className={`shrink-0 px-3 py-1.5 rounded-sm text-[12px] font-semibold border transition-colors cursor-pointer ${
+            paper?.is_published
+              ? 'bg-success/10 text-success border-success/20 hover:bg-danger/10 hover:text-danger hover:border-danger/20'
+              : 'bg-brand/10 text-brand border-brand/20 hover:bg-brand hover:text-white'
+          }`}
+        >
+          {paper?.is_published ? 'Unpublish' : 'Publish'}
+        </button>
+      </div>
+
+      {/* Question list */}
+      <div className="bg-surface rounded-base border border-border-dim mb-4">
+        <div className="px-4 py-3 border-b border-border-dim flex items-center justify-between">
+          <span className="text-[13px] font-semibold text-text-primary">Questions</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAddMode('pool')}
+              className="px-3 py-1 rounded-sm bg-dark border border-border-dim text-[12px] text-text-muted hover:border-gold hover:text-gold transition-colors cursor-pointer"
+            >
+              From Pool
+            </button>
+            <button
+              onClick={() => setAddMode('new')}
+              className="px-3 py-1 rounded-sm bg-brand text-white text-[12px] font-semibold hover:bg-brand-dark transition-colors cursor-pointer border-none"
+            >
+              + Author New
+            </button>
+          </div>
+        </div>
+
+        {addMode === 'new' && (
+          <div className="p-4 border-b border-border-dim">
+            <p className="text-[11.5px] text-text-muted mb-3">New question will be added to the pool and attached to this paper.</p>
+            <QuestionForm
+              initial={EMPTY_Q}
+              saving={savingNew}
+              onSave={handleCreateAndAttach}
+              onCancel={() => setAddMode(null)}
+              subjects={subjects}
+            />
+          </div>
+        )}
+
+        {questions.length === 0 && addMode !== 'new' ? (
+          <div className="p-8 text-center text-text-muted text-[13px]">
+            No questions attached. Use the buttons above to add questions.
+          </div>
+        ) : (
+          <ul>
+            {questions
+              .slice()
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((q, idx) => (
+                <li key={q.id} className="flex items-start gap-3 px-4 py-3 border-b border-border-dim last:border-0">
+                  <span className="w-6 h-6 rounded-full bg-dark text-text-muted text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12.5px] text-text-primary leading-snug">{q.question_text}</p>
+                    <div className="flex gap-3 mt-1 text-[11px] text-text-muted">
+                      <span>✓ {q.correct_option}</span>
+                      <span>·</span>
+                      <span>{q.slug}</span>
+                    </div>
+                  </div>
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDetach(q)}
+                      disabled={detachingId === q.id}
+                      className="shrink-0 text-[11.5px] text-danger bg-transparent border-none cursor-pointer hover:underline disabled:opacity-50"
+                    >
+                      {detachingId === q.id ? '…' : 'Remove'}
+                    </button>
+                  )}
+                </li>
+              ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Pool picker modal */}
+      {addMode === 'pool' && (
+        <PoolPicker
+          onAttach={handleAttachFromPool}
+          onClose={() => setAddMode(null)}
+        />
+      )}
+    </div>
+  );
+}
