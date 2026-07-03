@@ -39,7 +39,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 // ─── Context ─────────────────────────────────────────────────────────────────
 
 interface AuthContextValue extends AuthState {
-  login: (mobile: string, password: string) => Promise<void>;
+  login: (mobile: string, password: string) => Promise<User>;
   register: (data: {
     mobile: string;
     name: string;
@@ -95,11 +95,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkSession();
   }, []);
 
-  const login = useCallback(async (mobile: string, password: string) => {
+  const login = useCallback(async (mobile: string, password: string): Promise<User> => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const data = await authService.login({ mobile, password });
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user: data.user, isDemoMode: false } });
+      return data.user;
     } catch (err) {
       dispatch({ type: 'SET_LOADING', payload: false });
       throw err;

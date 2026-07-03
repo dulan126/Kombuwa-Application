@@ -18,7 +18,7 @@ export interface Paper {
   ms_available: boolean;
   ms_available_at?: string;
   /** Whether the current user has completed this paper */
-  done: boolean;
+  done: boolean | null;
   /** User's score on this paper (null if not attempted) */
   score: number | null;
   submitted_at?: string;
@@ -54,7 +54,7 @@ export interface SubmitResult {
   total: number;
   percentage: number;
   timeTakenSecs: number;
-  rank: RankInfo;
+  rank: RankInfo | null;
   demoMode?: boolean;
 }
 

@@ -2,7 +2,7 @@
 
 export type Stream = 'phy' | 'bio' | 'com' | 'art' | 'tec';
 export type Grade = '12' | '13';
-export type UserRole = 'student' | 'teacher' | 'admin';
+export type UserRole = 'student' | 'teacher' | 'admin' | 'editor';
 
 export interface User {
   id: string;

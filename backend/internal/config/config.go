@@ -41,6 +41,9 @@ type Config struct {
 	OTPExpireMinutes     int
 	OTPResendCooldownSec int
 	OTPMaxAttempts       int
+
+	AdminMobile   string
+	AdminPassword string
 }
 
 // Load reads env vars (and optionally a .env file in non-production) and validates required fields.
@@ -89,6 +92,9 @@ func Load() (*Config, error) {
 	c.OTPExpireMinutes = parseInt("OTP_EXPIRE_MINUTES", 5)
 	c.OTPResendCooldownSec = parseInt("OTP_RESEND_COOLDOWN_SECONDS", 60)
 	c.OTPMaxAttempts = parseInt("OTP_MAX_ATTEMPTS", 5)
+
+	c.AdminMobile = getEnv("ADMIN_MOBILE", "")
+	c.AdminPassword = getEnv("ADMIN_PASSWORD", "")
 
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("config validation failed:\n  - %s", strings.Join(errs, "\n  - "))

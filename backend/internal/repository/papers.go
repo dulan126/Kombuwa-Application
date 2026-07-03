@@ -156,10 +156,14 @@ func (r *PapersRepo) GetPaper(ctx context.Context, paperID uuid.UUID) (*PaperRow
 }
 
 // GetQuestionsNoAnswers returns questions for a paper without correct_option.
+// sort_order is sourced from the paper_questions join table.
 func (r *PapersRepo) GetQuestionsNoAnswers(ctx context.Context, paperID uuid.UUID) ([]model.Question, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, sort_order, question_text, option_a, option_b, option_c, option_d, image_url
-		 FROM questions WHERE paper_id = $1 ORDER BY sort_order`,
+		`SELECT q.id, pq.sort_order, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.image_url
+		 FROM paper_questions pq
+		 JOIN questions q ON q.id = pq.question_id
+		 WHERE pq.paper_id = $1
+		 ORDER BY pq.sort_order`,
 		paperID,
 	)
 	if err != nil {
@@ -180,11 +184,15 @@ func (r *PapersRepo) GetQuestionsNoAnswers(ctx context.Context, paperID uuid.UUI
 }
 
 // GetQuestionsWithAnswers returns questions including correct_option (for scoring and marking scheme).
+// sort_order is sourced from the paper_questions join table.
 func (r *PapersRepo) GetQuestionsWithAnswers(ctx context.Context, paperID uuid.UUID) ([]model.QuestionWithAnswer, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, sort_order, question_text, option_a, option_b, option_c, option_d,
-		        correct_option, explanation, image_url
-		 FROM questions WHERE paper_id = $1 ORDER BY sort_order`,
+		`SELECT q.id, pq.sort_order, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+		        q.correct_option, q.explanation, q.image_url
+		 FROM paper_questions pq
+		 JOIN questions q ON q.id = pq.question_id
+		 WHERE pq.paper_id = $1
+		 ORDER BY pq.sort_order`,
 		paperID,
 	)
 	if err != nil {
@@ -474,6 +482,8 @@ type CreatePaperParams struct {
 }
 
 // CreatePaper inserts a paper and its questions in a single transaction.
+// Questions are inserted into the pool and linked via paper_questions.
+// Papers are created as drafts (is_published = FALSE).
 // Returns the new paper UUID.
 func (r *PapersRepo) CreatePaper(ctx context.Context, p CreatePaperParams, qs []QuestionInput) (uuid.UUID, error) {
 	var paperID uuid.UUID
@@ -483,7 +493,7 @@ func (r *PapersRepo) CreatePaper(ctx context.Context, p CreatePaperParams, qs []
 		err := tx.QueryRow(ctx,
 			`INSERT INTO papers (type, subject_id, grade, title, question_count, time_seconds,
 			                     available_from, available_until, is_published, created_by)
-			 VALUES ($1::paper_type,$2,$3::grade_enum,$4,$5,$6,$7,$8,TRUE,$9) RETURNING id`,
+			 VALUES ($1::paper_type,$2,$3::grade_enum,$4,$5,$6,$7,$8,FALSE,$9) RETURNING id`,
 			string(p.Type), p.SubjectID, string(p.Grade), p.Title,
 			p.QuestionCount, p.TimeSeconds, p.AvailableFrom, p.AvailableUntil, p.CreatedBy,
 		).Scan(&idStr)
@@ -493,12 +503,23 @@ func (r *PapersRepo) CreatePaper(ctx context.Context, p CreatePaperParams, qs []
 		paperID, _ = uuid.Parse(idStr)
 
 		for i, q := range qs {
-			if _, err := tx.Exec(ctx,
-				`INSERT INTO questions (paper_id, sort_order, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
-				 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-				paperID, i+1, q.QuestionText, q.OptionA, q.OptionB, q.OptionC, q.OptionD, q.CorrectOption, q.Explanation,
-			); err != nil {
+			// Insert into pool first
+			var qID int
+			if err := tx.QueryRow(ctx,
+				`INSERT INTO questions (slug, subject_id, question_text, option_a, option_b, option_c, option_d,
+				                       correct_option, explanation, created_by, created_at)
+				 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) RETURNING id`,
+				q.Slug, q.SubjectID, q.QuestionText, q.OptionA, q.OptionB, q.OptionC, q.OptionD,
+				q.CorrectOption, q.Explanation, p.CreatedBy,
+			).Scan(&qID); err != nil {
 				return fmt.Errorf("insert question %d: %w", i+1, err)
+			}
+			// Link to paper
+			if _, err := tx.Exec(ctx,
+				`INSERT INTO paper_questions (paper_id, question_id, sort_order) VALUES ($1,$2,$3)`,
+				paperID, qID, i+1,
+			); err != nil {
+				return fmt.Errorf("link question %d: %w", i+1, err)
 			}
 		}
 		return nil
@@ -506,8 +527,10 @@ func (r *PapersRepo) CreatePaper(ctx context.Context, p CreatePaperParams, qs []
 	return paperID, err
 }
 
-// QuestionInput is the input shape for creating questions.
+// QuestionInput is the input shape for creating inline questions during paper creation.
 type QuestionInput struct {
+	Slug          string
+	SubjectID     *string
 	QuestionText  string
 	OptionA       string
 	OptionB       string
@@ -524,6 +547,93 @@ func (r *PapersRepo) EnableMarkingScheme(ctx context.Context, paperID uuid.UUID)
 		paperID,
 	)
 	return err
+}
+
+// ── User stats ───────────────────────────────────────────────────────────────
+
+// UserStats holds aggregate statistics for a student.
+type UserStats struct {
+	PapersAttempted int64    `json:"papers_attempted"`
+	AvgScorePct     float64  `json:"avg_score_pct"`
+	NationalRank    *int32   `json:"national_rank"`
+	DayStreak       int      `json:"day_streak"`
+}
+
+// GetUserStats computes aggregate stats for a student: papers attempted, average
+// score, best national rank across all papers, and current daily attempt streak.
+func (r *PapersRepo) GetUserStats(ctx context.Context, userID uuid.UUID) (*UserStats, error) {
+	var s UserStats
+
+	// Papers attempted + avg score
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*), COALESCE(AVG(score::float / NULLIF(total_questions,0) * 100), 0)
+		 FROM attempts WHERE user_id = $1 AND is_completed = TRUE`,
+		userID,
+	).Scan(&s.PapersAttempted, &s.AvgScorePct)
+	if err != nil {
+		return nil, fmt.Errorf("get user attempt stats: %w", err)
+	}
+
+	// Best national rank across all ranked papers
+	var rank int32
+	err = r.pool.QueryRow(ctx,
+		`SELECT national_rank FROM rankings WHERE user_id = $1 ORDER BY national_rank ASC LIMIT 1`,
+		userID,
+	).Scan(&rank)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("get user rank: %w", err)
+	}
+	if err == nil {
+		s.NationalRank = &rank
+	}
+
+	// Day streak: count consecutive calendar days (today or yesterday back) with at least one attempt
+	rows, err := r.pool.Query(ctx,
+		`SELECT DISTINCT DATE(submitted_at) AS day
+		 FROM attempts WHERE user_id = $1 AND is_completed = TRUE
+		 ORDER BY day DESC LIMIT 90`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get attempt days: %w", err)
+	}
+	defer rows.Close()
+
+	var days []time.Time
+	for rows.Next() {
+		var d time.Time
+		if err := rows.Scan(&d); err != nil {
+			return nil, fmt.Errorf("scan day: %w", err)
+		}
+		days = append(days, d.UTC().Truncate(24*time.Hour))
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(days) > 0 {
+		today := time.Now().UTC().Truncate(24 * time.Hour)
+		yesterday := today.AddDate(0, 0, -1)
+		// Streak starts from today or yesterday
+		startFrom := today
+		if !days[0].Equal(today) && !days[0].Equal(yesterday) {
+			s.DayStreak = 0
+		} else {
+			if days[0].Equal(yesterday) {
+				startFrom = yesterday
+			}
+			for i, d := range days {
+				expected := startFrom.AddDate(0, 0, -i)
+				if d.Equal(expected) {
+					s.DayStreak++
+				} else {
+					break
+				}
+			}
+		}
+	}
+
+	return &s, nil
 }
 
 // ── internal tx helper ────────────────────────────────────────────────────────

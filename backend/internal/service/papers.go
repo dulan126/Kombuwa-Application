@@ -37,6 +37,10 @@ func (s *PapersService) ListPapers(ctx context.Context, userID uuid.UUID, f repo
 	return s.repo.ListPapers(ctx, userID, f)
 }
 
+func (s *PapersService) GetUserStats(ctx context.Context, userID uuid.UUID) (*repository.UserStats, error) {
+	return s.repo.GetUserStats(ctx, userID)
+}
+
 // ── Exam start (questions without answers) ────────────────────────────────────
 
 type QuestionsResponse struct {
@@ -53,6 +57,7 @@ type paperSummary struct {
 	Grade          string     `json:"grade"`
 	TimeSeconds    int32      `json:"time_seconds"`
 	QuestionCount  int16      `json:"question_count"`
+	AvailableFrom  time.Time  `json:"available_from"`
 	AvailableUntil *time.Time `json:"available_until,omitempty"`
 }
 
@@ -68,6 +73,17 @@ func (s *PapersService) GetQuestions(ctx context.Context, paperID, userID uuid.U
 	// SRP: reject if window has closed
 	if paper.Type == model.PaperSRP && paper.AvailableUntil != nil && time.Now().After(*paper.AvailableUntil) {
 		return nil, httputil.E(http.StatusForbidden, "SRP window has closed")
+	}
+
+	// Daily: enforce the full-day window (00:00–23:59 SLST)
+	if paper.Type == model.PaperDaily {
+		now := time.Now()
+		if now.Before(paper.AvailableFrom) {
+			return nil, httputil.E(http.StatusForbidden, "Daily MCQ not yet available")
+		}
+		if paper.AvailableUntil != nil && now.After(*paper.AvailableUntil) {
+			return nil, httputil.E(http.StatusForbidden, "Daily MCQ window has closed")
+		}
 	}
 
 	// Check for existing attempt
@@ -102,6 +118,7 @@ func (s *PapersService) GetQuestions(ctx context.Context, paperID, userID uuid.U
 			Grade:          string(paper.Grade),
 			TimeSeconds:    paper.TimeSeconds,
 			QuestionCount:  paper.QuestionCount,
+			AvailableFrom:  paper.AvailableFrom,
 			AvailableUntil: paper.AvailableUntil,
 		},
 		Questions: questions,
@@ -367,6 +384,8 @@ type CreatePaperInput struct {
 }
 
 type QuestionInputJSON struct {
+	Slug          string  `json:"slug"`
+	SubjectID     *string `json:"subject_id"`
 	QuestionText  string  `json:"question_text"`
 	OptionA       string  `json:"option_a"`
 	OptionB       string  `json:"option_b"`
@@ -383,6 +402,11 @@ func (s *PapersService) CreatePaper(ctx context.Context, createdBy uuid.UUID, in
 		if len(in.Questions) != 10 {
 			return uuid.UUID{}, httputil.E(http.StatusUnprocessableEntity, "Daily MCQ must have exactly 10 questions")
 		}
+		// Auto-set available_until to full calendar day (00:00–23:59 SLST) if not provided
+		if in.AvailableUntil == nil {
+			until := in.AvailableFrom.Add(24 * time.Hour)
+			in.AvailableUntil = &until
+		}
 	case model.PaperSRP:
 		if len(in.Questions) != 30 {
 			return uuid.UUID{}, httputil.E(http.StatusUnprocessableEntity, "SRP must have exactly 30 questions")
@@ -393,7 +417,13 @@ func (s *PapersService) CreatePaper(ctx context.Context, createdBy uuid.UUID, in
 
 	qs := make([]repository.QuestionInput, len(in.Questions))
 	for i, q := range in.Questions {
+		slug := q.Slug
+		if slug == "" {
+			slug = fmt.Sprintf("q-%x-%d", time.Now().UnixNano()>>16, i+1)
+		}
 		qs[i] = repository.QuestionInput{
+			Slug:          slug,
+			SubjectID:     q.SubjectID,
 			QuestionText:  q.QuestionText,
 			OptionA:       q.OptionA,
 			OptionB:       q.OptionB,

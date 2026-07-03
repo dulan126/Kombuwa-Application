@@ -250,6 +250,22 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
 }
 
+/* ─── Admin Input ────────────────────────────────────────────────────────── */
+.admin-input {
+  width: 100%;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border-dim);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 0.12s ease;
+  appearance: auto;
+}
+.admin-input:focus { border-color: var(--color-brand); }
+.admin-input::placeholder { color: var(--color-text-muted); }
+
 /* ─── Exam Answer Option ──────────────────────────────────────────────────── */
 .answer-option {
   display: flex;

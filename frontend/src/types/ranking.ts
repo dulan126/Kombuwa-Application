@@ -17,8 +17,8 @@ export interface MyRank {
 
 export interface LeaderboardResponse {
   rows: LeaderboardEntry[];
-  myRank: MyRank;
-  totalParticipants?: number;
+  myRank: MyRank | null;
+  total?: number;
 }
 
 export interface RankingFilters {

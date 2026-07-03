@@ -51,6 +51,21 @@ func main() {
 	defer pool.Close()
 	log.Info("PostgreSQL connected")
 
+	// ── Seed super-admin ──────────────────────────────────────────────────
+	if cfg.AdminMobile == "" || cfg.AdminPassword == "" {
+		log.Warn("ADMIN_MOBILE or ADMIN_PASSWORD not set — skipping admin seed")
+	} else {
+		created, err := repository.SeedAdmin(ctx, pool, cfg.AdminMobile, cfg.AdminPassword)
+		if err != nil {
+			log.Fatal("seed admin failed", zap.Error(err))
+		}
+		if created {
+			log.Info("super-admin created", zap.String("mobile", cfg.AdminMobile))
+		} else {
+			log.Info("super-admin already exists", zap.String("mobile", cfg.AdminMobile))
+		}
+	}
+
 	// ── Redis ─────────────────────────────────────────────────────────────
 	rdb, err := redisclient.New(ctx, cfg)
 	if err != nil {
@@ -66,6 +81,8 @@ func main() {
 	authRepo := repository.NewAuthRepo(pool)
 	papersRepo := repository.NewPapersRepo(pool)
 	adminRepo := repository.NewAdminRepo(pool)
+	rbacRepo := repository.NewRBACRepo(pool)
+	poolRepo := repository.NewQuestionPoolRepo(pool)
 	ppRepo := repository.NewPastPapersRepo(pool)
 	forumRepo := repository.NewForumRepo(pool)
 
@@ -73,7 +90,7 @@ func main() {
 	smsCli := sms.New(cfg, log)
 	authSvc := service.NewAuthService(authRepo, rdb, smsCli, cfg, log)
 	papersSvc := service.NewPapersService(papersRepo, rdb, log)
-	adminSvc := service.NewAdminService(adminRepo, papersRepo, papersSvc, log)
+	adminSvc := service.NewAdminService(adminRepo, papersRepo, papersSvc, rbacRepo, poolRepo, rdb, log)
 	ppSvc := service.NewPastPapersService(ppRepo, log)
 	forumSvc := service.NewForumService(forumRepo, log)
 
@@ -92,6 +109,7 @@ func main() {
 	adminHandler := handler.NewAdminHandler(adminSvc, auth, log)
 	ppHandler := handler.NewPastPapersHandler(ppSvc, auth, cfg, log)
 	forumHandler := handler.NewForumHandler(forumSvc, auth, cfg, log)
+	studentHandler := handler.NewStudentHandler(adminRepo, papersSvc, auth, log)
 
 	// ── CORS ──────────────────────────────────────────────────────────────
 	corsHandler := cors.New(cors.Options{
@@ -120,6 +138,9 @@ func main() {
 	r.Mount("/api/v1/admin", adminHandler.Routes())
 	r.Mount("/api/v1/past-papers", ppHandler.Routes())
 	r.Mount("/api/v1/forum", forumHandler.Routes())
+	r.Mount("/api/v1/streams", studentHandler.StreamRoutes())
+	r.Mount("/api/v1/subjects", studentHandler.SubjectRoutes())
+	r.Mount("/api/v1/users", studentHandler.UserRoutes())
 
 	// ── Health ────────────────────────────────────────────────────────────
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {

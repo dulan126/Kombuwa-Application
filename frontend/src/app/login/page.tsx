@@ -9,7 +9,7 @@ import { isApiError } from '@/services/api-client';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoggedIn } = useAuth();
+  const { login, isLoggedIn, user } = useAuth();
   const { showToast } = useToast();
 
   const [mobile, setMobile]   = useState('');
@@ -17,9 +17,12 @@ export default function LoginPage() {
   const [showPw, setShowPw]   = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Redirect already-authenticated users (e.g. navigating back to /login)
   React.useEffect(() => {
-    if (isLoggedIn) router.replace('/dashboard');
-  }, [isLoggedIn, router]);
+    if (!isLoggedIn || !user) return;
+    const dest = (user.role === 'admin' || user.role === 'editor') ? '/admin/dashboard' : '/dashboard';
+    router.replace(dest);
+  }, [isLoggedIn, user, router]);
 
   const handleLogin = async () => {
     const m = mobile.trim();
@@ -27,8 +30,11 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      await login(m, password);
-      router.push('/dashboard');
+      const loggedInUser = await login(m, password);
+      const dest = (loggedInUser.role === 'admin' || loggedInUser.role === 'editor')
+        ? '/admin/dashboard'
+        : '/dashboard';
+      router.push(dest);
     } catch (err: unknown) {
       if (isApiError(err) && err.status === 401) {
         showToast('Incorrect mobile or password', 'error');

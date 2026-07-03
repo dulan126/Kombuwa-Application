@@ -142,11 +142,16 @@ func TokenFromCtx(ctx context.Context) string {
 // ── private helpers ───────────────────────────────────────────────────────────
 
 func extractBearer(r *http.Request) (string, error) {
+	// Prefer Authorization header (direct API / mobile clients)
 	h := r.Header.Get("Authorization")
-	if len(h) < 8 || h[:7] != "Bearer " {
-		return "", fmt.Errorf("no bearer token")
+	if len(h) > 7 && h[:7] == "Bearer " {
+		return h[7:], nil
 	}
-	return h[7:], nil
+	// Fall back to HTTP-only cookie set by the Next.js BFF
+	if c, err := r.Cookie("token"); err == nil && c.Value != "" {
+		return c.Value, nil
+	}
+	return "", fmt.Errorf("no bearer token")
 }
 
 type miedvanceClaims struct {

@@ -6,6 +6,37 @@ import (
 	"github.com/google/uuid"
 )
 
+// ── Permission types ──────────────────────────────────────────────────────────
+
+// Permission is a single action code stored in the permissions table.
+type Permission struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
+// PoolQuestion is a question in the shared pool (admin-facing; includes correct_option).
+type PoolQuestion struct {
+	ID            int32      `json:"id"`
+	Slug          string     `json:"slug"`
+	SubjectID     *string    `json:"subject_id,omitempty"`
+	QuestionText  string     `json:"question_text"`
+	OptionA       string     `json:"option_a"`
+	OptionB       string     `json:"option_b"`
+	OptionC       string     `json:"option_c"`
+	OptionD       string     `json:"option_d"`
+	CorrectOption string     `json:"correct_option"`
+	Explanation   *string    `json:"explanation,omitempty"`
+	ImageURL      *string    `json:"image_url,omitempty"`
+	CreatedBy     *uuid.UUID `json:"created_by,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+// PaperQuestion is a pool question with its position in a specific paper.
+type PaperQuestion struct {
+	PoolQuestion
+	SortOrder int16 `json:"sort_order"`
+}
+
 // ── Enum types ────────────────────────────────────────────────────────────────
 
 type UserRole string
@@ -14,6 +45,7 @@ const (
 	RoleStudent UserRole = "student"
 	RoleTeacher UserRole = "teacher"
 	RoleAdmin   UserRole = "admin"
+	RoleEditor  UserRole = "editor"
 )
 
 type Stream string
@@ -84,11 +116,11 @@ type Paper struct {
 	Score       *int16 `json:"score,omitempty"`
 }
 
-// Question holds a single MCQ question.
+// Question holds a single MCQ question as delivered to a student during an exam.
+// SortOrder is populated from paper_questions.sort_order for the paper being taken.
 // CorrectOption is never serialised to JSON — it is stripped before sending to students.
 type Question struct {
 	ID            int32   `json:"id"`
-	PaperID       uuid.UUID `json:"-"`
 	SortOrder     int16   `json:"sort_order"`
 	QuestionText  string  `json:"question_text"`
 	OptionA       string  `json:"option_a"`

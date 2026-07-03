@@ -7,6 +7,13 @@ import type {
   MarkingSchemeResponse,
 } from '@/types';
 
+export interface UserStats {
+  papers_attempted: number;
+  avg_score_pct: number;
+  national_rank: number | null;
+  day_streak: number;
+}
+
 // ─── Papers Service ──────────────────────────────────────────────────────────
 
 export const papersService = {
@@ -45,5 +52,12 @@ export const papersService = {
    */
   async getMarkingScheme(paperId: string): Promise<MarkingSchemeResponse> {
     return apiClient.get<MarkingSchemeResponse>(`/papers/${paperId}/marking-scheme`);
+  },
+
+  /**
+   * Get the current user's stats (papers attempted, avg score, rank, streak).
+   */
+  async getUserStats(): Promise<UserStats> {
+    return apiClient.get<UserStats>('/users/me/stats');
   },
 };

@@ -128,6 +128,19 @@ type DemoPapersMap = Record<string, Record<number, Record<string, { daily: DemoP
 export function generateDemoPapers(): DemoPapersMap {
   const papers: DemoPapersMap = {};
 
+  // Compute SLST-aligned midnight timestamps for demo daily papers.
+  // We derive everything from UTC so the browser's local timezone doesn't affect results.
+  const now = new Date();
+  const slstNow = new Date(now.getTime() + now.getTimezoneOffset() * 60_000 + 330 * 60_000);
+  const todaySLST = new Date(slstNow); todaySLST.setHours(0, 0, 0, 0);
+  const offsetMs = 330 * 60_000; // SLST is UTC+5:30
+  const todayFrom   = new Date(todaySLST.getTime() - offsetMs).toISOString();
+  const todayUntil  = new Date(todaySLST.getTime() - offsetMs + 24 * 3600_000).toISOString();
+  const ystdFrom    = new Date(todaySLST.getTime() - offsetMs - 24 * 3600_000).toISOString();
+  const ystdUntil   = new Date(todaySLST.getTime() - offsetMs).toISOString();
+  const twoDaysFrom = new Date(todaySLST.getTime() - offsetMs - 48 * 3600_000).toISOString();
+  const twoDaysUntil = new Date(todaySLST.getTime() - offsetMs - 24 * 3600_000).toISOString();
+
   Object.keys(STREAMS).forEach((stk) => {
     papers[stk] = {};
     ([12, 13] as const).forEach((g) => {
@@ -143,6 +156,8 @@ export function generateDemoPapers(): DemoPapersMap {
           qlist: Question[],
           time: number,
           msUp: boolean,
+          availableFrom?: string,
+          availableUntil?: string,
         ): DemoPaper => ({
           id,
           type,
@@ -155,14 +170,19 @@ export function generateDemoPapers(): DemoPapersMap {
           ms_available: msUp,
           done: false,
           score: null,
+          available_from: availableFrom,
+          available_until: availableUntil,
           _qs: qlist,
         });
 
         papers[stk][g][sub.id] = {
           daily: [
-            make(`d1_${stk}_${g}_${sub.id}`, 'daily', `${sub.n} · Daily 1 · ${g}ශ්‍රේ`, demoQs, 600, true),
-            make(`d2_${stk}_${g}_${sub.id}`, 'daily', `${sub.n} · Daily 2 · ${g}ශ්‍රේ`, [...demoQs].reverse(), 600, false),
-            make(`d3_${stk}_${g}_${sub.id}`, 'daily', `${sub.n} · Daily 3 · ${g}ශ්‍රේ`, demoQs.map((q, i) => ({ ...q, question_text: `[v3] ${q.question_text}` })), 600, true),
+            // d1 = today's paper: window open, MS not yet released
+            make(`d1_${stk}_${g}_${sub.id}`, 'daily', `${sub.n} · Daily 1 · ${g}ශ්‍රේ`, demoQs, 600, false, todayFrom, todayUntil),
+            // d2 = yesterday's paper: window closed, MS pending
+            make(`d2_${stk}_${g}_${sub.id}`, 'daily', `${sub.n} · Daily 2 · ${g}ශ්‍රේ`, [...demoQs].reverse(), 600, false, ystdFrom, ystdUntil),
+            // d3 = 2 days ago: window closed, MS available
+            make(`d3_${stk}_${g}_${sub.id}`, 'daily', `${sub.n} · Daily 3 · ${g}ශ්‍රේ`, demoQs.map((q, i) => ({ ...q, question_text: `[v3] ${q.question_text}` })), 600, true, twoDaysFrom, twoDaysUntil),
           ],
           srp: [
             make(`srp1_${stk}_${g}_${sub.id}`, 'srp', `${sub.n} · SRP සතිය 1 · ${g}ශ්‍රේ`, makeSRPQuestions(qs), 1800, true),

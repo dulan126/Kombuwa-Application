@@ -2,10 +2,13 @@
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/miedvance/api/internal/model"
@@ -225,76 +228,193 @@ func (r *AdminRepo) ListUsers(ctx context.Context, f AdminUserFilter) ([]AdminUs
 	return out, rows.Err()
 }
 
-// ── Subjects + topics ─────────────────────────────────────────────────────────
+// ── Streams ───────────────────────────────────────────────────────────────────
 
-// SubjectWithTopics is a subject row with its nested topics.
-type SubjectWithTopics struct {
-	ID        string       `json:"id"`
-	NameSi    string       `json:"name_si"`
-	Stream    string       `json:"stream"`
-	SortOrder int16        `json:"sort_order"`
-	Topics    []model.Topic `json:"topics"`
+// StreamRow represents a row in the streams table.
+type StreamRow struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Icon      string `json:"icon"`
+	Color     string `json:"color"`
+	SortOrder int16  `json:"sort_order"`
 }
 
-// ListSubjectsWithTopics returns all subjects with nested topics.
-func (r *AdminRepo) ListSubjectsWithTopics(ctx context.Context) ([]SubjectWithTopics, error) {
+// ListStreams returns all streams ordered by sort_order.
+func (r *AdminRepo) ListStreams(ctx context.Context) ([]StreamRow, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT s.id, s.name_si, s.stream, s.sort_order,
-		        t.id AS topic_id, t.name_si AS topic_name, t.sort_order AS topic_order
-		 FROM subjects s
-		 LEFT JOIN topics t ON t.subject_id = s.id
-		 ORDER BY s.stream, s.sort_order, t.sort_order`,
+		`SELECT id, name, icon, color, sort_order FROM streams ORDER BY sort_order, id`,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("list streams: %w", err)
+	}
+	defer rows.Close()
+
+	var out []StreamRow
+	for rows.Next() {
+		var s StreamRow
+		if err := rows.Scan(&s.ID, &s.Name, &s.Icon, &s.Color, &s.SortOrder); err != nil {
+			return nil, fmt.Errorf("scan stream: %w", err)
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+// CreateStream inserts a new stream.
+func (r *AdminRepo) CreateStream(ctx context.Context, s StreamRow) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO streams (id, name, icon, color, sort_order) VALUES ($1,$2,$3,$4,$5)`,
+		s.ID, s.Name, s.Icon, s.Color, s.SortOrder,
+	)
+	if err != nil {
+		return fmt.Errorf("create stream: %w", err)
+	}
+	return nil
+}
+
+// DeleteStream removes a stream (cascades to stream_subjects).
+func (r *AdminRepo) DeleteStream(ctx context.Context, id string) error {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM streams WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete stream: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+// ── Subjects ──────────────────────────────────────────────────────────────────
+
+// SubjectRow is a lightweight subject with its associated stream IDs.
+type SubjectRow struct {
+	ID        string   `json:"id"`
+	NameSi    string   `json:"name_si"`
+	StreamIDs []string `json:"stream_ids"`
+}
+
+// ListSubjects returns all subjects with their stream associations.
+func (r *AdminRepo) ListSubjects(ctx context.Context) ([]SubjectRow, error) {
+	rows, err := r.pool.Query(ctx, `SELECT id, name_si FROM subjects ORDER BY name_si`)
 	if err != nil {
 		return nil, fmt.Errorf("list subjects: %w", err)
 	}
 	defer rows.Close()
 
-	index := map[string]*SubjectWithTopics{}
+	index := map[string]*SubjectRow{}
 	var order []string
-
 	for rows.Next() {
-		var sID, sName, stream string
-		var sortOrder int16
-		var topicID *int32
-		var topicName *string
-		var topicOrder *int16
-
-		if err := rows.Scan(&sID, &sName, &stream, &sortOrder,
-			&topicID, &topicName, &topicOrder); err != nil {
-			return nil, fmt.Errorf("scan subject+topic: %w", err)
+		var s SubjectRow
+		if err := rows.Scan(&s.ID, &s.NameSi); err != nil {
+			return nil, fmt.Errorf("scan subject: %w", err)
 		}
-
-		if _, exists := index[sID]; !exists {
-			index[sID] = &SubjectWithTopics{
-				ID: sID, NameSi: sName, Stream: stream,
-				SortOrder: sortOrder, Topics: []model.Topic{},
-			}
-			order = append(order, sID)
-		}
-		if topicID != nil {
-			name := ""
-			if topicName != nil {
-				name = *topicName
-			}
-			ord := int16(0)
-			if topicOrder != nil {
-				ord = *topicOrder
-			}
-			index[sID].Topics = append(index[sID].Topics, model.Topic{
-				ID: *topicID, SubjectID: sID, NameSi: name, SortOrder: ord,
-			})
-		}
+		s.StreamIDs = []string{}
+		index[s.ID] = &s
+		order = append(order, s.ID)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	out := make([]SubjectWithTopics, len(order))
+	ssRows, err := r.pool.Query(ctx,
+		`SELECT subject_id, stream_id FROM stream_subjects ORDER BY subject_id, sort_order`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list stream_subjects: %w", err)
+	}
+	defer ssRows.Close()
+	for ssRows.Next() {
+		var subjectID, streamID string
+		if err := ssRows.Scan(&subjectID, &streamID); err != nil {
+			return nil, fmt.Errorf("scan stream_subject: %w", err)
+		}
+		if s, ok := index[subjectID]; ok {
+			s.StreamIDs = append(s.StreamIDs, streamID)
+		}
+	}
+	if err := ssRows.Err(); err != nil {
+		return nil, err
+	}
+
+	out := make([]SubjectRow, len(order))
 	for i, id := range order {
 		out[i] = *index[id]
 	}
 	return out, nil
+}
+
+// CreateSubject inserts a new subject.
+func (r *AdminRepo) CreateSubject(ctx context.Context, id, nameSi string) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO subjects (id, name_si) VALUES ($1, $2)`,
+		id, nameSi,
+	)
+	if err != nil {
+		return fmt.Errorf("create subject: %w", err)
+	}
+	return nil
+}
+
+// DeleteSubject removes a subject and all its stream associations.
+func (r *AdminRepo) DeleteSubject(ctx context.Context, id string) error {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM subjects WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete subject: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+// ListStreamSubjects returns subjects belonging to a specific stream, ordered by sort_order.
+func (r *AdminRepo) ListStreamSubjects(ctx context.Context, streamID string) ([]SubjectRow, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT s.id, s.name_si FROM stream_subjects ss
+		 JOIN subjects s ON s.id = ss.subject_id
+		 WHERE ss.stream_id = $1
+		 ORDER BY ss.sort_order, s.name_si`,
+		streamID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list stream subjects: %w", err)
+	}
+	defer rows.Close()
+
+	var out []SubjectRow
+	for rows.Next() {
+		var s SubjectRow
+		if err := rows.Scan(&s.ID, &s.NameSi); err != nil {
+			return nil, fmt.Errorf("scan subject: %w", err)
+		}
+		s.StreamIDs = []string{streamID}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+// AddSubjectToStream links a subject to a stream.
+func (r *AdminRepo) AddSubjectToStream(ctx context.Context, streamID, subjectID string) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO stream_subjects (stream_id, subject_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+		streamID, subjectID,
+	)
+	if err != nil {
+		return fmt.Errorf("add subject to stream: %w", err)
+	}
+	return nil
+}
+
+// RemoveSubjectFromStream removes a subject-stream link.
+func (r *AdminRepo) RemoveSubjectFromStream(ctx context.Context, streamID, subjectID string) error {
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM stream_subjects WHERE stream_id = $1 AND subject_id = $2`,
+		streamID, subjectID,
+	)
+	if err != nil {
+		return fmt.Errorf("remove subject from stream: %w", err)
+	}
+	return nil
 }
 
 // CreateTopic inserts a new topic and returns its ID.
@@ -308,4 +428,82 @@ func (r *AdminRepo) CreateTopic(ctx context.Context, subjectID, nameSi string) (
 		return 0, fmt.Errorf("create topic: %w", err)
 	}
 	return id, nil
+}
+
+// ── Paper CRUD ────────────────────────────────────────────────────────────────
+
+// UpdatePaperParams holds updatable paper fields.
+type UpdatePaperParams struct {
+	Title          string
+	SubjectID      string
+	Grade          string
+	TimeSeconds    int32
+	AvailableFrom  time.Time
+	AvailableUntil *time.Time
+}
+
+// UpdatePaper edits paper metadata. Returns the updated paper, or nil if not found.
+func (r *AdminRepo) UpdatePaper(ctx context.Context, paperID uuid.UUID, p UpdatePaperParams) (*model.Paper, error) {
+	var paper model.Paper
+	var idStr, paperType, grade string
+	err := r.pool.QueryRow(ctx,
+		`UPDATE papers SET title=$2, subject_id=$3, grade=$4::grade_enum, time_seconds=$5,
+		                   available_from=$6, available_until=$7, updated_at=NOW()
+		 WHERE id=$1
+		 RETURNING id, type, subject_id, grade, title, question_count, time_seconds,
+		           available_from, available_until, ms_available, is_published, created_at`,
+		paperID, p.Title, p.SubjectID, p.Grade, p.TimeSeconds, p.AvailableFrom, p.AvailableUntil,
+	).Scan(
+		&idStr, &paperType, &paper.SubjectID, &grade, &paper.Title,
+		&paper.QuestionCount, &paper.TimeSeconds, &paper.AvailableFrom, &paper.AvailableUntil,
+		&paper.MSAvailable, &paper.IsPublished, &paper.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("update paper: %w", err)
+	}
+	paper.ID, _ = uuid.Parse(idStr)
+	paper.Type = model.PaperType(paperType)
+	paper.Grade = model.Grade(grade)
+	return &paper, nil
+}
+
+// DeletePaper removes a paper and its join-table entries (questions remain in pool).
+func (r *AdminRepo) DeletePaper(ctx context.Context, paperID uuid.UUID) error {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM papers WHERE id = $1`, paperID)
+	if err != nil {
+		return fmt.Errorf("delete paper: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+// ── User management ───────────────────────────────────────────────────────────
+
+// UpdateUserRole changes the role of a user. Returns false if user not found.
+func (r *AdminRepo) UpdateUserRole(ctx context.Context, userID uuid.UUID, role model.UserRole) (bool, error) {
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE users SET role = $2::user_role, updated_at = NOW() WHERE id = $1`,
+		userID, string(role),
+	)
+	if err != nil {
+		return false, fmt.Errorf("update user role: %w", err)
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
+// UpdateUserStatus activates or deactivates a user. Returns false if user not found.
+func (r *AdminRepo) UpdateUserStatus(ctx context.Context, userID uuid.UUID, isActive bool) (bool, error) {
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE users SET is_active = $2, updated_at = NOW() WHERE id = $1`,
+		userID, isActive,
+	)
+	if err != nil {
+		return false, fmt.Errorf("update user status: %w", err)
+	}
+	return tag.RowsAffected() > 0, nil
 }

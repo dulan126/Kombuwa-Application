@@ -10,6 +10,7 @@ export interface Thread {
   view_count: number;
   reply_count: number;
   author_name: string;
+  author_role?: string;
   image_urls?: string[];
   created_at: string;
 }
@@ -20,9 +21,9 @@ export interface Reply {
   id: string;
   body: string;
   is_verified: boolean;
-  name?: string;
-  author_name?: string;
-  role: string;
+  name: string;
+  author_role?: string;
+  role?: string;
   created_at?: string;
 }
 

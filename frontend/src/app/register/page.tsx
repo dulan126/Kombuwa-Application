@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
-import { STREAMS, DISTRICTS } from '@/lib/constants';
+import { DISTRICTS } from '@/lib/constants';
+import { subjectsService, type Stream as ApiStream } from '@/services/subjects.service';
 import { districtMap } from '@/lib/utils';
 import { isApiError } from '@/services/api-client';
 import type { Stream, Grade } from '@/types';
@@ -117,6 +118,7 @@ export default function RegisterPage() {
   const [step, setStep]       = useState<Step>('phone');
   const [isLoading, setIsLoading] = useState(false);
   const [showPw, setShowPw]   = useState(false);
+  const [streams, setStreams]  = useState<ApiStream[]>([]);
   const [form, setForm]       = useState<FormData>({
     mobile: '', name: '', email: '', district: 'කොළඹ',
     examYear: '2026', stream: '', grade: '12',
@@ -124,9 +126,15 @@ export default function RegisterPage() {
   });
   const [otpCode, setOtpCode] = useState('');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isLoggedIn) router.replace('/dashboard');
   }, [isLoggedIn, router]);
+
+  useEffect(() => {
+    subjectsService.getStreams()
+      .then((data) => setStreams(data.sort((a, b) => a.sort_order - b.sort_order)))
+      .catch(() => {});
+  }, []);
 
   const set = (field: keyof FormData, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -331,23 +339,30 @@ export default function RegisterPage() {
 
                   {/* Stream */}
                   <Field label="A/L Stream" required>
-                    <div className="grid grid-cols-5 gap-2">
-                      {(Object.entries(STREAMS) as [Stream, typeof STREAMS[Stream]][]).map(([key, s]) => {
-                        const sel = form.stream === key;
-                        return (
-                          <button key={key} onClick={() => set('stream', key)}
-                            className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-[10px] border-2 cursor-pointer transition-all font-[inherit]"
-                            style={{ borderColor: sel ? s.color : 'var(--color-border-dim)', background: sel ? s.bg : 'var(--color-dark)' }}
-                          >
-                            <span className="text-[20px]">{s.icon}</span>
-                            <span className="text-[9.5px] font-semibold leading-tight text-center"
-                              style={{ color: sel ? s.color : 'var(--color-text-muted)' }}>
-                              {s.name.split(' ')[0]}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {streams.length === 0 ? (
+                      <div className="text-[12px] text-text-muted py-2">Loading streams…</div>
+                    ) : (
+                      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(streams.length, 5)}, 1fr)` }}>
+                        {streams.map((s) => {
+                          const sel = form.stream === s.id;
+                          return (
+                            <button key={s.id} onClick={() => set('stream', s.id)}
+                              className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-[10px] border-2 cursor-pointer transition-all font-[inherit]"
+                              style={{
+                                borderColor: sel ? s.color : 'var(--color-border-dim)',
+                                background: sel ? s.color + '20' : 'var(--color-dark)',
+                              }}
+                            >
+                              <span className="text-[20px]">{s.icon}</span>
+                              <span className="text-[9.5px] font-semibold leading-tight text-center"
+                                style={{ color: sel ? s.color : 'var(--color-text-muted)' }}>
+                                {s.name.split(' ')[0]}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </Field>
 
                   {/* District + Year */}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { papersService } from '@/services/papers.service';
 import { generateDemoPapers } from '@/lib/demo-data';
+import { isNetworkError } from '@/services/api-client';
 import type { Paper, User } from '@/types';
 import type { Grade } from '@/types/auth';
 
@@ -26,20 +27,24 @@ export function usePapers({ user, grade }: UsePapersOptions) {
       setPapers(data);
       setIsDemoMode(false);
     } catch (err: unknown) {
-      // Demo fallback
-      try {
-        const demoPapers = generateDemoPapers();
-        const userPapers = demoPapers[user.stream]?.[parseInt(grade)] || {};
-        const allPapers: Paper[] = [];
-        Object.values(userPapers).forEach((bucket) => {
-          [...bucket.srp, ...bucket.daily].forEach((p) => {
-            const { _qs, ...paper } = p;
-            allPapers.push(paper);
+      // Demo fallback only when the API is completely unreachable
+      if (isNetworkError(err)) {
+        try {
+          const demoPapers = generateDemoPapers();
+          const userPapers = demoPapers[user.stream]?.[parseInt(grade)] || {};
+          const allPapers: Paper[] = [];
+          Object.values(userPapers).forEach((bucket) => {
+            [...bucket.srp, ...bucket.daily].forEach((p) => {
+              const { _qs, ...paper } = p;
+              allPapers.push(paper);
+            });
           });
-        });
-        setPapers(allPapers);
-        setIsDemoMode(true);
-      } catch {
+          setPapers(allPapers);
+          setIsDemoMode(true);
+        } catch {
+          setError(err instanceof Error ? err : new Error(String(err)));
+        }
+      } else {
         setError(err instanceof Error ? err : new Error(String(err)));
       }
     } finally {
