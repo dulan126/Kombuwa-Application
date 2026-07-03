@@ -1,13 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Users, FileText, ClipboardList, Flame, type LucideIcon } from 'lucide-react';
 import { adminService, type AdminStats } from '@/services/admin.service';
 
-const STAT_CARDS = [
-  { key: 'totalStudents' as const, icon: '👥', label: 'Students'        },
-  { key: 'totalPapers'   as const, icon: '📋', label: 'Published Papers' },
-  { key: 'totalAttempts' as const, icon: '📝', label: 'Attempts'         },
-  { key: 'dau'           as const, icon: '🔥', label: 'Active Today'     },
+interface StatCard {
+  key: keyof AdminStats;
+  Icon: LucideIcon;
+  color: string;
+  bg: string;
+  label: string;
+}
+
+const STAT_CARDS: StatCard[] = [
+  { key: 'totalStudents', Icon: Users,         color: '#4F7FE8', bg: '#4F7FE822', label: 'Students'         },
+  { key: 'totalPapers',   Icon: FileText,       color: '#8b90f0', bg: '#8b90f022', label: 'Published Papers' },
+  { key: 'totalAttempts', Icon: ClipboardList,  color: '#FB923C', bg: '#FB923C22', label: 'Attempts'         },
+  { key: 'dau',           Icon: Flame,          color: '#F43F5E', bg: '#F43F5E22', label: 'Active Today'     },
 ];
 
 export default function AdminDashboardPage() {
@@ -39,7 +48,12 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {STAT_CARDS.map((card) => (
           <div key={card.key} className="bg-surface rounded-base border border-border-dim p-5">
-            <div className="text-[24px] mb-2">{card.icon}</div>
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
+              style={{ background: card.bg }}
+            >
+              <card.Icon size={18} style={{ color: card.color }} strokeWidth={2} />
+            </div>
             <div className="text-[1.6rem] font-bold text-text-primary" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
               {stats ? stats[card.key].toLocaleString() : <span className="text-text-muted">—</span>}
             </div>

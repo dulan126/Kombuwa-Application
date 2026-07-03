@@ -36,7 +36,7 @@ export default function LeaderboardPage() {
           limit: 50,
         });
         if (cancelled) return;
-        setRows(res.rows);
+        setRows(res.rows ?? []);
         setMyRank(res.myRank ?? null);
         setTotal(res.total ?? null);
       } catch {

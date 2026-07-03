@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { Trash2, Pencil, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { adminService, type AdminPaper } from '@/services/admin.service';
 import { isApiError } from '@/services/api-client';
@@ -70,7 +71,7 @@ export default function AdminPapersPage() {
           href="/admin/papers/new"
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-sm bg-brand text-white text-[12.5px] font-semibold no-underline hover:bg-brand-dark transition-colors"
         >
-          + New Paper
+          <Plus size={13} /> New Paper
         </Link>
       </div>
 
@@ -132,20 +133,22 @@ export default function AdminPapersPage() {
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <Link
                           href={`/admin/papers/${paper.id}`}
-                          className="text-[11.5px] text-gold hover:underline no-underline font-medium"
+                          className="w-7 h-7 flex items-center justify-center rounded text-text-muted hover:text-gold hover:bg-gold/10 transition-colors no-underline"
+                          title="Edit paper"
                         >
-                          Edit
+                          <Pencil size={13} />
                         </Link>
                         {canDelete && (
                           <button
                             onClick={() => deletePaper(paper)}
                             disabled={deletingId === paper.id}
-                            className="text-[11.5px] text-danger hover:underline bg-transparent border-none cursor-pointer disabled:opacity-50"
+                            className="w-7 h-7 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer disabled:opacity-50"
+                            title="Delete paper"
                           >
-                            {deletingId === paper.id ? '…' : 'Delete'}
+                            {deletingId === paper.id ? '…' : <Trash2 size={13} />}
                           </button>
                         )}
                       </div>

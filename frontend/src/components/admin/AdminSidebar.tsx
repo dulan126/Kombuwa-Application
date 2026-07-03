@@ -3,15 +3,27 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard, FileText, Database, BookOpen, Users,
+  LogOut, ChevronLeft, ChevronRight,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
-const NAV_ITEMS = [
-  { label: 'Dashboard',     icon: '📊', href: '/admin/dashboard' },
-  { label: 'Papers',        icon: '📋', href: '/admin/papers'    },
-  { label: 'Question Pool', icon: '🗃',  href: '/admin/questions' },
-  { label: 'Subjects',      icon: '📚', href: '/admin/subjects'  },
-  { label: 'Users',         icon: '👥', href: '/admin/users'     },
+interface NavItem {
+  label: string;
+  Icon: LucideIcon;
+  color: string;
+  href: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Dashboard',     Icon: LayoutDashboard, color: '#8b90f0', href: '/admin/dashboard' },
+  { label: 'Papers',        Icon: FileText,         color: '#4F7FE8', href: '/admin/papers'    },
+  { label: 'Question Pool', Icon: Database,         color: '#2EC4B6', href: '/admin/questions' },
+  { label: 'Subjects',      Icon: BookOpen,         color: '#FB923C', href: '/admin/subjects'  },
+  { label: 'Users',         Icon: Users,            color: '#A78BFA', href: '/admin/users'     },
 ];
 
 const STORAGE_KEY = 'admin-sidebar-collapsed';
@@ -67,32 +79,49 @@ export function AdminSidebar() {
         <button
           onClick={toggle}
           className={cn(
-            'flex items-center py-1.75 px-2 rounded-sm cursor-pointer text-[13px] transition-all mb-1 w-full bg-transparent border-none text-text-muted hover:text-text-primary hover:bg-dark font-[inherit]',
+            'flex items-center py-1.75 px-2 rounded-sm cursor-pointer transition-all mb-1 w-full bg-transparent border-none text-text-muted hover:text-text-primary hover:bg-dark font-[inherit]',
             collapsed ? 'justify-center' : 'justify-end pr-3',
           )}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? '›' : '‹'}
+          {collapsed
+            ? <ChevronRight size={15} />
+            : <ChevronLeft size={15} />}
         </button>
 
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            title={collapsed ? item.label : undefined}
-            className={cn(
-              'sidebar-nav-item',
-              isActive(item.href) && 'active',
-              collapsed && 'justify-center px-2',
-            )}
-          >
-            <span className="shrink-0">{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
-            {!collapsed && isActive(item.href) && (
-              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand" />
-            )}
-          </Link>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const active = isActive(item.href);
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              title={collapsed ? item.label : undefined}
+              className={cn(
+                'sidebar-nav-item',
+                active && 'active',
+                collapsed && 'justify-center px-2',
+              )}
+            >
+              <item.Icon
+                size={16}
+                strokeWidth={active ? 2.5 : 2}
+                style={{ color: active ? item.color : undefined }}
+                className={active ? '' : 'text-text-muted'}
+              />
+              {!collapsed && (
+                <span style={active ? { color: item.color } : undefined}>
+                  {item.label}
+                </span>
+              )}
+              {!collapsed && active && (
+                <span
+                  className="ml-auto w-1.5 h-1.5 rounded-full"
+                  style={{ background: item.color }}
+                />
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* User */}
@@ -116,10 +145,10 @@ export function AdminSidebar() {
               </div>
               <button
                 onClick={logout}
-                className="text-[11px] text-text-muted hover:text-danger transition-colors bg-transparent border-none cursor-pointer"
+                className="flex items-center justify-center w-7 h-7 rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer"
                 title="Logout"
               >
-                ↪
+                <LogOut size={14} />
               </button>
             </div>
           )

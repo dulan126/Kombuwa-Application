@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Trash2, X, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   adminService,
@@ -11,6 +12,7 @@ import {
 import { isApiError } from '@/services/api-client';
 
 // ─── Stream Card ──────────────────────────────────────────────────────────────
+// Uses <div> instead of <button> to avoid nested-button hydration error.
 
 function StreamCard({
   stream,
@@ -26,9 +28,12 @@ function StreamCard({
   isAdmin: boolean;
 }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className={`w-full text-left rounded-base border p-3 transition-colors cursor-pointer bg-transparent ${
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()}
+      className={`w-full text-left rounded-base border p-3 transition-colors cursor-pointer ${
         selected
           ? 'border-brand bg-brand/8'
           : 'border-border-dim hover:border-border-base'
@@ -45,10 +50,10 @@ function StreamCard({
         {isAdmin && (
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="shrink-0 text-[11px] text-text-muted hover:text-danger transition-colors bg-transparent border-none cursor-pointer px-1"
+            className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer"
             title="Delete stream"
           >
-            ✕
+            <Trash2 size={13} />
           </button>
         )}
       </div>
@@ -58,7 +63,7 @@ function StreamCard({
           style={{ background: stream.color }}
         />
       )}
-    </button>
+    </div>
   );
 }
 
@@ -145,13 +150,14 @@ function NewStreamForm({ onSave, onCancel }: { onSave: (s: CreateStreamInput) =>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-4 py-1.5 rounded-sm bg-brand text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer border-none"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer border-none"
         >
+          <Plus size={11} />
           {saving ? 'Creating…' : 'Create'}
         </button>
         <button
           onClick={onCancel}
-          className="px-4 py-1.5 rounded-sm bg-dark border border-border-dim text-text-muted text-[12px] hover:border-gold transition-colors cursor-pointer"
+          className="px-3 py-1.5 rounded-sm bg-dark border border-border-dim text-text-muted text-[12px] hover:border-gold transition-colors cursor-pointer border-solid"
         >
           Cancel
         </button>
@@ -188,7 +194,7 @@ function NewSubjectForm({ onSave, onCancel }: { onSave: (id: string, nameSi: str
         <input className="admin-input w-20 font-mono" placeholder="ph" value={id}
           onChange={e => setId(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))} maxLength={10} />
       </div>
-      <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
+      <div className="flex flex-col gap-1 flex-1 min-w-40">
         <label className="text-[11px] text-text-muted font-semibold">Name (Sinhala)</label>
         <input className="admin-input" placeholder="භෞතිකය" value={nameSi}
           onChange={e => setNameSi(e.target.value)} />
@@ -196,13 +202,14 @@ function NewSubjectForm({ onSave, onCancel }: { onSave: (id: string, nameSi: str
       <button
         onClick={handleSave}
         disabled={saving}
-        className="px-3 py-[7px] rounded-sm bg-brand text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer border-none"
+        className="inline-flex items-center gap-1.5 px-3 py-1.75 rounded-sm bg-brand text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer border-none"
       >
+        <Plus size={11} />
         {saving ? '…' : 'Add'}
       </button>
       <button
         onClick={onCancel}
-        className="px-3 py-[7px] rounded-sm bg-dark border border-border-dim text-text-muted text-[12px] cursor-pointer"
+        className="px-3 py-1.75 rounded-sm bg-dark border border-border-dim text-text-muted text-[12px] cursor-pointer border-solid"
       >
         Cancel
       </button>
@@ -231,8 +238,6 @@ export default function SubjectsPage() {
   const [loadingStreamSubjects, setLoadingStreamSubjects] = useState(false);
   const [error, setError] = useState('');
 
-  // ── Load all streams and subjects on mount ────────────────────────────────
-
   useEffect(() => {
     adminService.listStreams()
       .then(setStreams)
@@ -244,8 +249,6 @@ export default function SubjectsPage() {
       .catch(() => setError('Failed to load subjects'))
       .finally(() => setLoadingSubjects(false));
   }, []);
-
-  // ── Load subjects for selected stream ─────────────────────────────────────
 
   const loadStreamSubjects = useCallback(async (streamId: string) => {
     setLoadingStreamSubjects(true);
@@ -264,8 +267,6 @@ export default function SubjectsPage() {
     setAssignSubjectId('');
     loadStreamSubjects(stream.id);
   }
-
-  // ── Stream CRUD ───────────────────────────────────────────────────────────
 
   async function handleCreateStream(data: CreateStreamInput) {
     const newStream = await adminService.createStream(data);
@@ -287,8 +288,6 @@ export default function SubjectsPage() {
     })));
   }
 
-  // ── Subject CRUD ──────────────────────────────────────────────────────────
-
   async function handleCreateSubject(id: string, nameSi: string) {
     await adminService.createSubject({ id, name_si: nameSi });
     setSubjects(prev => [...prev, { id, name_si: nameSi, stream_ids: [] }]
@@ -302,8 +301,6 @@ export default function SubjectsPage() {
     setSubjects(prev => prev.filter(s => s.id !== subject.id));
     setStreamSubjects(prev => prev.filter(s => s.id !== subject.id));
   }
-
-  // ── Stream-subject assignments ────────────────────────────────────────────
 
   async function handleAssign() {
     if (!selectedStream || !assignSubjectId) return;
@@ -338,8 +335,6 @@ export default function SubjectsPage() {
     ));
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-
   const streamSubjectIds = new Set(streamSubjects.map(s => s.id));
   const unassignedSubjects = subjects.filter(s => !streamSubjectIds.has(s.id));
 
@@ -355,9 +350,15 @@ export default function SubjectsPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-sm bg-danger/10 border border-danger/20 text-danger text-[12.5px]">
-          {error}
-          <button onClick={() => setError('')} className="ml-3 underline cursor-pointer bg-transparent border-none text-danger text-[12px]">dismiss</button>
+        <div className="mb-4 p-3 rounded-sm bg-danger/10 border border-danger/20 text-danger text-[12.5px] flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            onClick={() => setError('')}
+            className="w-5 h-5 flex items-center justify-center rounded text-danger hover:bg-danger/10 bg-transparent border-none cursor-pointer"
+            title="Dismiss"
+          >
+            <X size={12} />
+          </button>
         </div>
       )}
 
@@ -370,9 +371,9 @@ export default function SubjectsPage() {
             {isAdmin && !showStreamForm && (
               <button
                 onClick={() => setShowStreamForm(true)}
-                className="text-[11.5px] text-brand hover:opacity-80 bg-transparent border-none cursor-pointer font-semibold"
+                className="inline-flex items-center gap-1 text-[11.5px] text-brand hover:opacity-80 bg-transparent border-none cursor-pointer font-semibold"
               >
-                + New
+                <Plus size={11} /> New
               </button>
             )}
           </div>
@@ -419,7 +420,6 @@ export default function SubjectsPage() {
 
             {selectedStream ? (
               <>
-                {/* Assign subject */}
                 {isAdmin && (
                   <div className="flex gap-2 mb-3">
                     <select
@@ -435,8 +435,9 @@ export default function SubjectsPage() {
                     <button
                       onClick={handleAssign}
                       disabled={!assignSubjectId || assigning}
-                      className="px-3 py-1.5 rounded-sm bg-brand text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-40 cursor-pointer border-none shrink-0"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-40 cursor-pointer border-none shrink-0"
                     >
+                      <Plus size={11} />
                       {assigning ? '…' : 'Add'}
                     </button>
                   </div>
@@ -459,9 +460,10 @@ export default function SubjectsPage() {
                         {isAdmin && (
                           <button
                             onClick={() => handleRemoveFromStream(s.id)}
-                            className="shrink-0 text-[11px] text-text-muted hover:text-danger transition-colors bg-transparent border-none cursor-pointer"
+                            className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer"
+                            title="Remove from stream"
                           >
-                            Remove
+                            <X size={12} />
                           </button>
                         )}
                       </div>
@@ -483,9 +485,9 @@ export default function SubjectsPage() {
               {isAdmin && !showSubjectForm && (
                 <button
                   onClick={() => setShowSubjectForm(true)}
-                  className="text-[11.5px] text-brand hover:opacity-80 bg-transparent border-none cursor-pointer font-semibold"
+                  className="inline-flex items-center gap-1 text-[11.5px] text-brand hover:opacity-80 bg-transparent border-none cursor-pointer font-semibold"
                 >
-                  + New Subject
+                  <Plus size={11} /> New Subject
                 </button>
               )}
             </div>
@@ -534,9 +536,10 @@ export default function SubjectsPage() {
                       {isAdmin && (
                         <button
                           onClick={() => handleDeleteSubject(s)}
-                          className="text-[11px] text-text-muted hover:text-danger transition-colors bg-transparent border-none cursor-pointer"
+                          className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer"
+                          title="Delete subject"
                         >
-                          Del
+                          <Trash2 size={13} />
                         </button>
                       )}
                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   adminService,
@@ -41,7 +42,7 @@ function QuestionModal({
       >
         <div className="p-4 border-b border-border-dim flex items-center justify-between sticky top-0 bg-surface">
           <h3 className="font-bold text-text-primary text-[13.5px]">{title}</h3>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer text-[18px]">×</button>
+          <button onClick={onClose} className="flex items-center justify-center w-7 h-7 rounded text-text-muted hover:text-text-primary hover:bg-dark transition-colors bg-transparent border-none cursor-pointer"><X size={14} /></button>
         </div>
         <div className="p-4 flex flex-col gap-3 text-[12.5px]">
           <textarea
@@ -187,7 +188,7 @@ export default function QuestionsPage() {
           onClick={() => setModal({ mode: 'create' })}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-sm bg-brand text-white text-[12.5px] font-semibold hover:bg-brand-dark transition-colors cursor-pointer border-none"
         >
-          + New Question
+          <Plus size={13} /> New Question
         </button>
       </div>
 
@@ -234,17 +235,19 @@ export default function QuestionsPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setModal({ mode: 'edit', q })}
-                          className="text-[11.5px] text-gold hover:underline bg-transparent border-none cursor-pointer font-medium"
+                          className="w-7 h-7 flex items-center justify-center rounded text-text-muted hover:text-gold hover:bg-gold/10 transition-colors bg-transparent border-none cursor-pointer"
+                          title="Edit question"
                         >
-                          Edit
+                          <Pencil size={13} />
                         </button>
                         {canDelete && (
                           <button
                             onClick={() => handleDelete(q)}
                             disabled={deletingId === q.id}
-                            className="text-[11.5px] text-danger hover:underline bg-transparent border-none cursor-pointer disabled:opacity-50"
+                            className="w-7 h-7 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer disabled:opacity-50"
+                            title="Delete question"
                           >
-                            {deletingId === q.id ? '…' : 'Delete'}
+                            {deletingId === q.id ? '…' : <Trash2 size={13} />}
                           </button>
                         )}
                       </div>
@@ -264,16 +267,16 @@ export default function QuestionsPage() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1 rounded-sm bg-dark border border-border-dim hover:border-gold transition-colors disabled:opacity-40 cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-sm bg-dark border border-border-dim hover:border-gold transition-colors disabled:opacity-40 cursor-pointer"
               >
-                ← Prev
+                <ChevronLeft size={13} /> Prev
               </button>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1 rounded-sm bg-dark border border-border-dim hover:border-gold transition-colors disabled:opacity-40 cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-sm bg-dark border border-border-dim hover:border-gold transition-colors disabled:opacity-40 cursor-pointer"
               >
-                Next →
+                Next <ChevronRight size={13} />
               </button>
             </div>
           </div>

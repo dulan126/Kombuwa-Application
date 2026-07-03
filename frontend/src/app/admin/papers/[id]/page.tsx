@@ -2,6 +2,7 @@
 
 import { use, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ArrowLeft, Database, Pencil, Trash2, Eye, EyeOff, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   adminService,
@@ -128,7 +129,7 @@ function PoolPicker({
       <div className="bg-surface rounded-base w-full max-w-lg shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-border-dim flex items-center justify-between">
           <h3 className="font-bold text-text-primary text-[13.5px]">Add from Question Pool</h3>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer text-[18px]">×</button>
+          <button onClick={onClose} className="flex items-center justify-center w-7 h-7 rounded text-text-muted hover:text-text-primary hover:bg-dark transition-colors bg-transparent border-none cursor-pointer"><X size={14} /></button>
         </div>
         <div className="p-4">
           <input
@@ -264,8 +265,8 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <Link href="/admin/papers" className="text-[12px] text-text-muted hover:text-text-primary no-underline transition-colors">
-            ← Back to Papers
+          <Link href="/admin/papers" className="inline-flex items-center gap-1 text-[12px] text-text-muted hover:text-text-primary no-underline transition-colors">
+            <ArrowLeft size={13} /> Back to Papers
           </Link>
           <h1 className="mt-2 text-[1.3rem] font-bold text-text-primary" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
             {paper?.title ?? 'Paper Builder'}
@@ -280,13 +281,13 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
         </div>
         <button
           onClick={handleTogglePublish}
-          className={`shrink-0 px-3 py-1.5 rounded-sm text-[12px] font-semibold border transition-colors cursor-pointer ${
+          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] font-semibold border transition-colors cursor-pointer ${
             paper?.is_published
               ? 'bg-success/10 text-success border-success/20 hover:bg-danger/10 hover:text-danger hover:border-danger/20'
               : 'bg-brand/10 text-brand border-brand/20 hover:bg-brand hover:text-white'
           }`}
         >
-          {paper?.is_published ? 'Unpublish' : 'Publish'}
+          {paper?.is_published ? <><EyeOff size={13} /> Unpublish</> : <><Eye size={13} /> Publish</>}
         </button>
       </div>
 
@@ -297,15 +298,15 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
           <div className="flex gap-2">
             <button
               onClick={() => setAddMode('pool')}
-              className="px-3 py-1 rounded-sm bg-dark border border-border-dim text-[12px] text-text-muted hover:border-gold hover:text-gold transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-dark border border-border-dim text-[12px] text-text-muted hover:border-gold hover:text-gold transition-colors cursor-pointer"
             >
-              From Pool
+              <Database size={12} /> From Pool
             </button>
             <button
               onClick={() => setAddMode('new')}
-              className="px-3 py-1 rounded-sm bg-brand text-white text-[12px] font-semibold hover:bg-brand-dark transition-colors cursor-pointer border-none"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-brand text-white text-[12px] font-semibold hover:bg-brand-dark transition-colors cursor-pointer border-none"
             >
-              + Author New
+              <Pencil size={12} /> Author New
             </button>
           </div>
         </div>
@@ -349,9 +350,10 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
                     <button
                       onClick={() => handleDetach(q)}
                       disabled={detachingId === q.id}
-                      className="shrink-0 text-[11.5px] text-danger bg-transparent border-none cursor-pointer hover:underline disabled:opacity-50"
+                      className="shrink-0 w-7 h-7 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer disabled:opacity-50"
+                      title="Remove from paper"
                     >
-                      {detachingId === q.id ? '…' : 'Remove'}
+                      {detachingId === q.id ? '…' : <Trash2 size={13} />}
                     </button>
                   )}
                 </li>

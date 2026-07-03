@@ -3,13 +3,20 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import {
+  LayoutDashboard, ClipboardCheck, Star, BookOpen, Trophy,
+  CheckCircle2, MessageCircle, ArrowLeft, LogOut,
+  ChevronLeft, ChevronRight,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { subjectsService, type Stream, type Subject } from '@/services/subjects.service';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
   label: string;
-  icon: string;
+  Icon: LucideIcon;
+  color: string;
   href: string;
 }
 
@@ -45,12 +52,10 @@ export function SubjectSidebar({ subjectId }: { subjectId: string }) {
           subjectsService.getStreams(),
         ]);
         if (cancelled) return;
-        const found = subjects.find((s) => s.id === subjectId) ?? null;
-        setSubject(found);
-        const userStream = streams.find((s) => s.id === user!.stream) ?? null;
-        setStreamInfo(userStream);
+        setSubject(subjects.find((s) => s.id === subjectId) ?? null);
+        setStreamInfo(streams.find((s) => s.id === user!.stream) ?? null);
       } catch {
-        // leave null — sidebar degrades gracefully
+        // degrade gracefully
       }
     }
     load();
@@ -58,15 +63,19 @@ export function SubjectSidebar({ subjectId }: { subjectId: string }) {
   }, [user, subjectId]);
 
   const base = `/subject/${subjectId}`;
+  const streamColor = streamInfo?.color ?? '#8b90f0';
+  const subjectName = subject?.name_si ?? subjectId;
+  const streamName  = streamInfo?.name  ?? 'Subject';
+  const initial     = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
 
   const navItems: NavItem[] = [
-    { label: 'Overview',        icon: '🏠', href: base },
-    { label: 'Daily MCQ',       icon: '📝', href: `${base}/exam?type=daily` },
-    { label: 'Special Paper',   icon: '⭐', href: `${base}/exam?type=srp` },
-    { label: 'Past Papers',     icon: '📚', href: `${base}/past-papers` },
-    { label: 'Leaderboard',     icon: '🏆', href: `${base}/leaderboard` },
-    { label: 'Marking Schemes', icon: '📖', href: `${base}/marking-schemes` },
-    { label: 'Forum',           icon: '💬', href: '/forum' },
+    { label: 'Overview',        Icon: LayoutDashboard, color: '#8b90f0', href: base },
+    { label: 'Daily MCQ',       Icon: ClipboardCheck,  color: '#4F7FE8', href: `${base}/exam?type=daily` },
+    { label: 'Special Paper',   Icon: Star,            color: '#F59E0B', href: `${base}/exam?type=srp` },
+    { label: 'Past Papers',     Icon: BookOpen,        color: '#10B981', href: `${base}/past-papers` },
+    { label: 'Leaderboard',     Icon: Trophy,          color: '#EAB308', href: `${base}/leaderboard` },
+    { label: 'Marking Schemes', Icon: CheckCircle2,    color: '#14B8A6', href: `${base}/marking-schemes` },
+    { label: 'Forum',           Icon: MessageCircle,   color: '#A78BFA', href: '/forum' },
   ];
 
   const isActive = (href: string) => {
@@ -81,12 +90,6 @@ export function SubjectSidebar({ subjectId }: { subjectId: string }) {
     return true;
   };
 
-  const streamColor = streamInfo?.color ?? '#8b90f0';
-  const streamIcon  = streamInfo?.icon  ?? '📚';
-  const streamName  = streamInfo?.name  ?? 'Subject';
-  const subjectName = subject?.name_si  ?? subjectId;
-  const initial     = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
-
   return (
     <aside
       className={cn(
@@ -94,88 +97,91 @@ export function SubjectSidebar({ subjectId }: { subjectId: string }) {
         collapsed ? 'w-16' : 'w-65',
       )}
     >
-      {/* Back button / brand row */}
-      <div className={cn('p-4 border-b border-border-dim flex items-center justify-between', collapsed && 'justify-center px-2')}>
+      {/* Back row */}
+      <div className={cn('p-4 border-b border-border-dim flex items-center', collapsed && 'justify-center px-2')}>
         {collapsed ? (
           <Link
             href="/dashboard"
-            className="text-text-muted hover:text-text-primary no-underline transition-colors text-[14px]"
+            className="flex items-center justify-center w-8 h-8 rounded text-text-muted hover:text-text-primary hover:bg-dark transition-colors no-underline"
             title="Back to Dashboard"
           >
-            ←
+            <ArrowLeft size={15} />
           </Link>
         ) : (
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-1.5 text-[12px] text-text-muted hover:text-text-primary no-underline transition-colors"
           >
-            ← Back to Dashboard
+            <ArrowLeft size={13} /> Back to Dashboard
           </Link>
         )}
       </div>
 
       {/* Subject card */}
-      {!collapsed && (
+      {!collapsed ? (
         <div className="p-4 border-b border-border-dim">
-          <div
-            className="rounded-[12px] p-4"
-            style={{ background: `${streamColor}12` }}
-          >
-            <div className="text-2xl mb-2">{streamIcon}</div>
-            <div className="text-[13px] font-bold text-text-primary leading-snug">
-              {subjectName}
-            </div>
-            <div className="text-[11px] text-text-muted mt-0.5">
-              {streamName}
-            </div>
+          <div className="rounded-[12px] p-4" style={{ background: `${streamColor}12` }}>
+            <div className="text-2xl mb-2">{streamInfo?.icon ?? '📚'}</div>
+            <div className="text-[13px] font-bold text-text-primary leading-snug">{subjectName}</div>
+            <div className="text-[11px] text-text-muted mt-0.5">{streamName}</div>
           </div>
         </div>
-      )}
-
-      {collapsed && (
+      ) : (
         <div className="flex justify-center py-3 border-b border-border-dim" title={subjectName}>
-          <span className="text-2xl">{streamIcon}</span>
+          <span className="text-xl">{streamInfo?.icon ?? '📚'}</span>
         </div>
       )}
 
-      {/* Nav items */}
+      {/* Nav */}
       <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-hidden">
         {/* Collapse toggle */}
         <button
           onClick={toggle}
           className={cn(
-            'flex items-center py-1.75 px-2 rounded-sm cursor-pointer text-[13px] transition-all mb-1 w-full bg-transparent border-none text-text-muted hover:text-text-primary hover:bg-dark font-[inherit]',
+            'flex items-center py-1.75 px-2 rounded-sm cursor-pointer transition-all mb-1 w-full bg-transparent border-none text-text-muted hover:text-text-primary hover:bg-dark font-[inherit]',
             collapsed ? 'justify-center' : 'justify-end pr-3',
           )}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? '›' : '‹'}
+          {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         </button>
 
-        {navItems.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            title={collapsed ? item.label : undefined}
-            className={cn(
-              'sidebar-nav-item',
-              isActive(item.href) && 'active',
-              collapsed && 'justify-center px-2',
-            )}
-          >
-            <span className="shrink-0">{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
-            {!collapsed && isActive(item.href) && (
-              <span
-                className="ml-auto w-1.5 h-1.5 rounded-full"
-                style={{ background: streamColor }}
+        {navItems.map((item) => {
+          const active = isActive(item.href);
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              title={collapsed ? item.label : undefined}
+              className={cn(
+                'sidebar-nav-item',
+                active && 'active',
+                collapsed && 'justify-center px-2',
+              )}
+            >
+              <item.Icon
+                size={16}
+                strokeWidth={active ? 2.5 : 2}
+                style={{ color: active ? item.color : undefined }}
+                className={active ? '' : 'text-text-muted'}
               />
-            )}
-          </Link>
-        ))}
+              {!collapsed && (
+                <span style={active ? { color: item.color } : undefined}>
+                  {item.label}
+                </span>
+              )}
+              {!collapsed && active && (
+                <span
+                  className="ml-auto w-1.5 h-1.5 rounded-full"
+                  style={{ background: item.color }}
+                />
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* User profile */}
+      {/* User */}
       <div className={cn('p-4 border-t border-border-dim', collapsed && 'flex flex-col items-center gap-2 px-2')}>
         {isLoggedIn && user ? (
           collapsed ? (
@@ -200,10 +206,10 @@ export function SubjectSidebar({ subjectId }: { subjectId: string }) {
               </div>
               <button
                 onClick={logout}
-                className="text-[11px] text-text-muted hover:text-danger transition-colors bg-transparent border-none cursor-pointer"
+                className="flex items-center justify-center w-7 h-7 rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer"
                 title="Logout"
               >
-                ↪
+                <LogOut size={14} />
               </button>
             </div>
           )

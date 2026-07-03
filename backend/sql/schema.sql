@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS past_papers (
   id                       UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   subject_id               VARCHAR(10) NOT NULL REFERENCES subjects(id),
   topic_id                 INT         NOT NULL REFERENCES topics(id),
-  year                     SMALLINT    NOT NULL CHECK (year BETWEEN 2010 AND 2030),
+  year                     SMALLINT    NOT NULL,
   grade                    grade_enum  NOT NULL,
   mcq_count                SMALLINT    NOT NULL DEFAULT 0,
   essay_count              SMALLINT    NOT NULL DEFAULT 0,
