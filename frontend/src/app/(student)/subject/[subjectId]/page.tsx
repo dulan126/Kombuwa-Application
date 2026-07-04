@@ -36,6 +36,52 @@ function fmtCountdown(ms: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
+function SRPCountdownCard({ availableFrom, questionCount, timeSeconds }: {
+  availableFrom: string;
+  questionCount: number;
+  timeSeconds: number;
+}) {
+  const [countdown, setCountdown] = useState('');
+
+  useEffect(() => {
+    function update() {
+      const ms = Math.max(0, new Date(availableFrom).getTime() - Date.now());
+      const s = Math.floor(ms / 1000);
+      const days = Math.floor(s / 86400);
+      const h = Math.floor((s % 86400) / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      const hms = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      setCountdown(days >= 1 ? `${days}d ${hms}` : hms);
+    }
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [availableFrom]);
+
+  const startDate = new Date(availableFrom).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const timeMins = Math.round(timeSeconds / 60);
+
+  return (
+    <div
+      className="rounded-base p-4 mb-6 flex items-center gap-4"
+      style={{ background: 'linear-gradient(135deg, #6f73d6 0%, #5a5ebd 100%)', opacity: 0.9 }}
+    >
+      <span className="text-2xl shrink-0">⭐</span>
+      <div className="flex-1">
+        <div className="text-white font-bold text-[13.5px]">Get Ready — Special Ranking Paper</div>
+        <div className="text-white/75 text-[12px] mt-0.5">
+          {questionCount} Questions · {timeMins} min · Island-wide Ranking
+        </div>
+        <div className="text-white/80 text-[12px] font-mono font-bold mt-1">{countdown}</div>
+      </div>
+      <div className="text-white/60 text-[11px] shrink-0 text-right leading-relaxed">
+        Starts<br />{startDate}
+      </div>
+    </div>
+  );
+}
+
 function DailyCountdown({ prefix }: { prefix: string }) {
   const [display, setDisplay] = useState(() => fmtCountdown(msUntilNextMidnightSLST()));
   useEffect(() => {
@@ -94,7 +140,15 @@ export default function SubjectOverviewPage() {
       )
     : 0;
 
-  const srp = subjectPapers.find((p) => p.type === 'srp' && !p.done);
+  const now = Date.now();
+  const srpLive = subjectPapers.find((p) =>
+    p.type === 'srp' && !p.done &&
+    (p.available_from == null || new Date(p.available_from).getTime() <= now) &&
+    (p.available_until == null || new Date(p.available_until).getTime() > now),
+  );
+  const srpUpcoming = [...subjectPapers]
+    .filter((p) => p.type === 'srp' && !p.done && p.available_from != null && new Date(p.available_from).getTime() > now)
+    .sort((a, b) => new Date(a.available_from!).getTime() - new Date(b.available_from!).getTime())[0] ?? null;
 
   // Most recent daily paper (includes completed ones so we can show score/MS state)
   const daily = [...subjectPapers]
@@ -110,7 +164,7 @@ export default function SubjectOverviewPage() {
   return (
     <div className="max-w-225">
       {/* SRP Live Banner */}
-      {srp && (
+      {srpLive && (
         <div
           className="rounded-base p-4 mb-6 flex items-center gap-4"
           style={{ background: 'linear-gradient(135deg, #8b90f0 0%, #6f73d6 100%)' }}
@@ -118,15 +172,26 @@ export default function SubjectOverviewPage() {
           <span className="text-2xl shrink-0">⭐</span>
           <div className="flex-1">
             <div className="text-white font-bold text-[13.5px]">Live Special Ranking Paper</div>
-            <div className="text-white/75 text-[12px] mt-0.5">{srp.title} · 30 Questions · 30 Minutes</div>
+            <div className="text-white/75 text-[12px] mt-0.5">
+              {srpLive.title} · {srpLive.question_count} Questions · {Math.round(srpLive.time_seconds / 60)} Minutes
+            </div>
           </div>
           <Link
-            href={`/subject/${subjectId}/exam?type=srp`}
+            href={`/subject/${subjectId}/exam?type=srp&paperId=${srpLive.id}`}
             className="px-4 py-2 rounded-full bg-white/20 text-white text-[12.5px] font-semibold no-underline hover:bg-white/30 transition-colors shrink-0"
           >
             Start →
           </Link>
         </div>
+      )}
+
+      {/* SRP Upcoming Countdown */}
+      {srpUpcoming && !srpLive && (
+        <SRPCountdownCard
+          availableFrom={srpUpcoming.available_from!}
+          questionCount={srpUpcoming.question_count}
+          timeSeconds={srpUpcoming.time_seconds}
+        />
       )}
 
       {/* Stat Cards */}

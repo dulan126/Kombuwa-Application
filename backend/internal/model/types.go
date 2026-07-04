@@ -19,6 +19,7 @@ type PoolQuestion struct {
 	ID            int32      `json:"id"`
 	Slug          string     `json:"slug"`
 	SubjectID     *string    `json:"subject_id,omitempty"`
+	TopicID       *int32     `json:"topic_id,omitempty"`
 	QuestionText  string     `json:"question_text"`
 	OptionA       string     `json:"option_a"`
 	OptionB       string     `json:"option_b"`

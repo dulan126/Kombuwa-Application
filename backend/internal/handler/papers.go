@@ -2,6 +2,7 @@
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -33,7 +34,8 @@ func (h *PapersHandler) Routes() chi.Router {
 	r.Use(h.authMW.Authenticate)
 
 	r.Get("/", h.listPapers)
-	r.Get("/{id}/questions", h.getQuestions)
+	r.Get("/{id}/overview", h.examOverview)
+	r.Post("/{id}/start", h.startExam)
 	r.Post("/{id}/submit", h.submit)
 	r.Get("/{id}/marking-scheme", h.markingScheme)
 	r.Get("/{id}/rankings", h.rankings)
@@ -65,14 +67,30 @@ func (h *PapersHandler) listPapers(w http.ResponseWriter, r *http.Request) {
 	httputil.JSON(w, http.StatusOK, cards)
 }
 
-// GET /papers/{id}/questions
-func (h *PapersHandler) getQuestions(w http.ResponseWriter, r *http.Request) {
+// GET /papers/{id}/overview — pre-start lobby data. Never returns questions or answers.
+func (h *PapersHandler) examOverview(w http.ResponseWriter, r *http.Request) {
 	paperID, ok := parseUUID(w, chi.URLParam(r, "id"))
 	if !ok {
 		return
 	}
 	user := middleware.UserFromCtx(r.Context())
-	resp, err := h.svc.GetQuestions(r.Context(), paperID, user.ID)
+	resp, err := h.svc.GetExamOverview(r.Context(), paperID, user.ID)
+	if err != nil {
+		httputil.HandleError(w, err)
+		return
+	}
+	httputil.JSON(w, http.StatusOK, resp)
+}
+
+// POST /papers/{id}/start — server-validated start; consumes the single attempt
+// and returns questions (without answers). Idempotent for an in-progress attempt.
+func (h *PapersHandler) startExam(w http.ResponseWriter, r *http.Request) {
+	paperID, ok := parseUUID(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	user := middleware.UserFromCtx(r.Context())
+	resp, err := h.svc.StartExam(r.Context(), paperID, user.ID)
 	if err != nil {
 		httputil.HandleError(w, err)
 		return
@@ -183,4 +201,14 @@ func queryInt(s string, fallback int) int {
 		return n
 	}
 	return fallback
+}
+
+// parsePagination reads page and limit from query params, applying defaults and an upper cap.
+func parsePagination(q url.Values, defaultLimit, maxLimit int) (page, limit int) {
+	page = queryInt(q.Get("page"), 1)
+	limit = queryInt(q.Get("limit"), defaultLimit)
+	if limit > maxLimit {
+		limit = maxLimit
+	}
+	return
 }

@@ -6,26 +6,34 @@ import { Trash2, Pencil, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { adminService, type AdminPaper } from '@/services/admin.service';
 import { isApiError } from '@/services/api-client';
+import { AdminDialog, type DialogState } from '@/components/ui/AdminDialog';
+import { Pagination } from '@/components/ui/Pagination';
+
+const LIMIT = 50;
 
 export default function AdminPapersPage() {
   const { user } = useAuth();
   const [papers, setPapers] = useState<AdminPaper[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<DialogState | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await adminService.listPapers();
-      setPapers(data);
+      const data = await adminService.listPapers({ page, limit: LIMIT });
+      setPapers(data.papers ?? []);
+      setTotal(data.total ?? 0);
     } catch {
       setError('Failed to load papers');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -37,23 +45,30 @@ export default function AdminPapersPage() {
         prev.map(p => p.id === paper.id ? { ...p, is_published: !p.is_published } : p)
       );
     } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to update paper');
+      setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to update paper' });
     } finally {
       setTogglingId(null);
     }
   }
 
-  async function deletePaper(paper: AdminPaper) {
-    if (!confirm(`Delete "${paper.title}"? This cannot be undone.`)) return;
-    setDeletingId(paper.id);
-    try {
-      await adminService.deletePaper(paper.id);
-      setPapers(prev => prev.filter(p => p.id !== paper.id));
-    } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to delete paper');
-    } finally {
-      setDeletingId(null);
-    }
+  function deletePaper(paper: AdminPaper) {
+    setDialog({
+      type: 'confirm',
+      title: 'Delete Paper',
+      message: `Delete "${paper.title}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setDeletingId(paper.id);
+        try {
+          await adminService.deletePaper(paper.id);
+          setPapers(prev => prev.filter(p => p.id !== paper.id));
+        } catch (err) {
+          setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to delete paper' });
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   }
 
   const canDelete = user?.role === 'admin';
@@ -65,7 +80,7 @@ export default function AdminPapersPage() {
           <h1 className="text-[1.4rem] font-bold text-text-primary" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
             Papers
           </h1>
-          <p className="text-text-muted text-[12.5px] mt-0.5">{papers.length} papers total</p>
+          <p className="text-text-muted text-[12.5px] mt-0.5">{total} papers total</p>
         </div>
         <Link
           href="/admin/papers/new"
@@ -159,7 +174,9 @@ export default function AdminPapersPage() {
             </table>
           </div>
         )}
+        <Pagination page={page} totalPages={Math.ceil(total / LIMIT)} onPage={setPage} />
       </div>
+      {dialog && <AdminDialog {...dialog} onClose={() => setDialog(null)} />}
     </div>
   );
 }

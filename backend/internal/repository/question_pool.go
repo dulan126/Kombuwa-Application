@@ -64,7 +64,7 @@ func (r *QuestionPoolRepo) ListPoolQuestions(ctx context.Context, f PoolFilter) 
 
 	params = append(params, f.Limit, offset)
 	dataQ := fmt.Sprintf(`
-		SELECT id, slug, subject_id, question_text, option_a, option_b, option_c, option_d,
+		SELECT id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
 		       correct_option, explanation, image_url, created_by, created_at
 		FROM questions %s
 		ORDER BY created_at DESC
@@ -83,7 +83,7 @@ func (r *QuestionPoolRepo) ListPoolQuestions(ctx context.Context, f PoolFilter) 
 		var q model.PoolQuestion
 		var createdByStr *string
 		if err := rows.Scan(
-			&q.ID, &q.Slug, &q.SubjectID, &q.QuestionText,
+			&q.ID, &q.Slug, &q.SubjectID, &q.TopicID, &q.QuestionText,
 			&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
 			&q.CorrectOption, &q.Explanation, &q.ImageURL,
 			&createdByStr, &q.CreatedAt,
@@ -102,7 +102,7 @@ func (r *QuestionPoolRepo) ListPoolQuestions(ctx context.Context, f PoolFilter) 
 // GetPoolQuestion returns a single pool question by ID.
 func (r *QuestionPoolRepo) GetPoolQuestion(ctx context.Context, id int) (*model.PoolQuestion, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT id, slug, subject_id, question_text, option_a, option_b, option_c, option_d,
+		`SELECT id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
 		        correct_option, explanation, image_url, created_by, created_at
 		 FROM questions WHERE id = $1`,
 		id,
@@ -110,7 +110,7 @@ func (r *QuestionPoolRepo) GetPoolQuestion(ctx context.Context, id int) (*model.
 	var q model.PoolQuestion
 	var createdByStr *string
 	err := row.Scan(
-		&q.ID, &q.Slug, &q.SubjectID, &q.QuestionText,
+		&q.ID, &q.Slug, &q.SubjectID, &q.TopicID, &q.QuestionText,
 		&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
 		&q.CorrectOption, &q.Explanation, &q.ImageURL,
 		&createdByStr, &q.CreatedAt,
@@ -132,6 +132,7 @@ func (r *QuestionPoolRepo) GetPoolQuestion(ctx context.Context, id int) (*model.
 type CreatePoolQuestionParams struct {
 	Slug          string
 	SubjectID     *string
+	TopicID       *int32
 	QuestionText  string
 	OptionA       string
 	OptionB       string
@@ -149,15 +150,15 @@ func (r *QuestionPoolRepo) CreatePoolQuestion(ctx context.Context, p CreatePoolQ
 	var createdByStr *string
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO questions
-		   (slug, subject_id, question_text, option_a, option_b, option_c, option_d,
+		   (slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
 		    correct_option, explanation, image_url, created_by, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
-		 RETURNING id, slug, subject_id, question_text, option_a, option_b, option_c, option_d,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+		 RETURNING id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
 		           correct_option, explanation, image_url, created_by, created_at`,
-		p.Slug, p.SubjectID, p.QuestionText, p.OptionA, p.OptionB, p.OptionC, p.OptionD,
+		p.Slug, p.SubjectID, p.TopicID, p.QuestionText, p.OptionA, p.OptionB, p.OptionC, p.OptionD,
 		p.CorrectOption, p.Explanation, p.ImageURL, p.CreatedBy,
 	).Scan(
-		&q.ID, &q.Slug, &q.SubjectID, &q.QuestionText,
+		&q.ID, &q.Slug, &q.SubjectID, &q.TopicID, &q.QuestionText,
 		&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
 		&q.CorrectOption, &q.Explanation, &q.ImageURL,
 		&createdByStr, &q.CreatedAt,
@@ -178,6 +179,7 @@ func (r *QuestionPoolRepo) CreatePoolQuestion(ctx context.Context, p CreatePoolQ
 // UpdatePoolQuestionParams holds updatable fields. Slug is intentionally excluded (immutable).
 type UpdatePoolQuestionParams struct {
 	SubjectID     *string
+	TopicID       *int32
 	QuestionText  string
 	OptionA       string
 	OptionB       string
@@ -194,15 +196,15 @@ func (r *QuestionPoolRepo) UpdatePoolQuestion(ctx context.Context, id int, p Upd
 	var createdByStr *string
 	err := r.pool.QueryRow(ctx,
 		`UPDATE questions SET
-		   subject_id = $2, question_text = $3, option_a = $4, option_b = $5,
-		   option_c = $6, option_d = $7, correct_option = $8, explanation = $9, image_url = $10
+		   subject_id = $2, topic_id = $3, question_text = $4, option_a = $5, option_b = $6,
+		   option_c = $7, option_d = $8, correct_option = $9, explanation = $10, image_url = $11
 		 WHERE id = $1
-		 RETURNING id, slug, subject_id, question_text, option_a, option_b, option_c, option_d,
+		 RETURNING id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
 		           correct_option, explanation, image_url, created_by, created_at`,
-		id, p.SubjectID, p.QuestionText, p.OptionA, p.OptionB, p.OptionC, p.OptionD,
+		id, p.SubjectID, p.TopicID, p.QuestionText, p.OptionA, p.OptionB, p.OptionC, p.OptionD,
 		p.CorrectOption, p.Explanation, p.ImageURL,
 	).Scan(
-		&q.ID, &q.Slug, &q.SubjectID, &q.QuestionText,
+		&q.ID, &q.Slug, &q.SubjectID, &q.TopicID, &q.QuestionText,
 		&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
 		&q.CorrectOption, &q.Explanation, &q.ImageURL,
 		&createdByStr, &q.CreatedAt,

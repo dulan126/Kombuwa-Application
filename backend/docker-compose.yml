@@ -1,6 +1,8 @@
 ﻿services:
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     ports:
       - "4000:4000"
     env_file: .env
@@ -15,7 +17,21 @@
     volumes:
       - uploads:/app/uploads
       - logs:/app/logs
-    restart: unless-stopped
+    develop:
+      watch:
+        - action: rebuild
+          path: go.mod
+        - action: rebuild
+          path: go.sum
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - tmp/
+            - Dockerfile
+            - Dockerfile.dev
+            - docker-compose.yml
+            - "*.md"
 
   postgres:
     image: postgres:15-alpine

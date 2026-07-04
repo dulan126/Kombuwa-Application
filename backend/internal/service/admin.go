@@ -61,8 +61,32 @@ func (s *AdminService) GetStats(ctx context.Context) (*repository.Stats, error) 
 
 // ── Papers ────────────────────────────────────────────────────────────────────
 
-func (s *AdminService) ListPapers(ctx context.Context) ([]repository.AdminPaperRow, error) {
-	return s.repo.ListAllPapers(ctx)
+// PapersPage is the paginated response for admin paper listing.
+type PapersPage struct {
+	Papers []repository.AdminPaperRow `json:"papers"`
+	Total  int                        `json:"total"`
+}
+
+func (s *AdminService) ListPapers(ctx context.Context, page, limit int) (*PapersPage, error) {
+	papers, total, err := s.repo.ListPapers(ctx, page, limit)
+	if err != nil {
+		return nil, err
+	}
+	if papers == nil {
+		papers = []repository.AdminPaperRow{}
+	}
+	return &PapersPage{Papers: papers, Total: total}, nil
+}
+
+func (s *AdminService) GetPaper(ctx context.Context, paperID uuid.UUID) (*repository.AdminPaperRow, error) {
+	paper, err := s.repo.GetPaper(ctx, paperID)
+	if err != nil {
+		return nil, fmt.Errorf("get paper: %w", err)
+	}
+	if paper == nil {
+		return nil, httputil.E(http.StatusNotFound, "Paper not found")
+	}
+	return paper, nil
 }
 
 func (s *AdminService) SetPaperPublished(ctx context.Context, paperID uuid.UUID, publish bool) (map[string]any, error) {
@@ -88,6 +112,19 @@ type CreateDraftPaperInput struct {
 func (s *AdminService) CreateDraftPaper(ctx context.Context, createdBy uuid.UUID, in CreateDraftPaperInput) (uuid.UUID, error) {
 	if in.Title == "" || in.SubjectID == "" || in.Grade == "" || in.Type == "" {
 		return uuid.UUID{}, httputil.E(http.StatusBadRequest, "type, subject_id, grade, and title are required")
+	}
+	slst := time.FixedZone("SLST", 5*3600+30*60)
+	switch model.PaperType(in.Type) {
+	case model.PaperSRP:
+		fromSLST := in.AvailableFrom.In(slst)
+		if fromSLST.Weekday() != time.Saturday {
+			return uuid.UUID{}, httputil.E(http.StatusBadRequest, "SRP papers must start on a Saturday (SLST)")
+		}
+		sundayEnd := time.Date(
+			fromSLST.Year(), fromSLST.Month(), fromSLST.Day()+1,
+			23, 59, 59, 0, slst,
+		).UTC()
+		in.AvailableUntil = &sundayEnd
 	}
 	return s.papersRepo.CreatePaper(ctx, repository.CreatePaperParams{
 		Type:           model.PaperType(in.Type),
@@ -193,6 +230,7 @@ func (s *AdminService) TriggerRankings(ctx context.Context, paperID uuid.UUID) e
 type PoolQuestionInput struct {
 	Slug          string  `json:"slug"`
 	SubjectID     *string `json:"subject_id"`
+	TopicID       *int32  `json:"topic_id"`
 	QuestionText  string  `json:"question_text"`
 	OptionA       string  `json:"option_a"`
 	OptionB       string  `json:"option_b"`
@@ -232,6 +270,7 @@ func (s *AdminService) CreatePoolQuestion(ctx context.Context, createdBy uuid.UU
 	q, err := s.poolRepo.CreatePoolQuestion(ctx, repository.CreatePoolQuestionParams{
 		Slug:          slug,
 		SubjectID:     in.SubjectID,
+		TopicID:       in.TopicID,
 		QuestionText:  in.QuestionText,
 		OptionA:       in.OptionA,
 		OptionB:       in.OptionB,
@@ -257,6 +296,7 @@ func (s *AdminService) UpdatePoolQuestion(ctx context.Context, id int, in PoolQu
 	}
 	q, err := s.poolRepo.UpdatePoolQuestion(ctx, id, repository.UpdatePoolQuestionParams{
 		SubjectID:     in.SubjectID,
+		TopicID:       in.TopicID,
 		QuestionText:  in.QuestionText,
 		OptionA:       in.OptionA,
 		OptionB:       in.OptionB,
@@ -359,8 +399,21 @@ func (s *AdminService) ReorderQuestion(ctx context.Context, paperID uuid.UUID, q
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 
-func (s *AdminService) ListUsers(ctx context.Context, f repository.AdminUserFilter) ([]repository.AdminUserRow, error) {
-	return s.repo.ListUsers(ctx, f)
+// UsersPage is the paginated response for admin user listing.
+type UsersPage struct {
+	Users []repository.AdminUserRow `json:"users"`
+	Total int                       `json:"total"`
+}
+
+func (s *AdminService) ListUsers(ctx context.Context, f repository.AdminUserFilter) (*UsersPage, error) {
+	users, total, err := s.repo.ListUsers(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	if users == nil {
+		users = []repository.AdminUserRow{}
+	}
+	return &UsersPage{Users: users, Total: total}, nil
 }
 
 func (s *AdminService) UpdateUserRole(ctx context.Context, userID uuid.UUID, role string) error {
@@ -465,6 +518,14 @@ func (s *AdminService) CreateTopic(ctx context.Context, subjectID, nameSi string
 		return 0, httputil.E(http.StatusBadRequest, "subject_id and name_si (min 2 chars) are required")
 	}
 	return s.repo.CreateTopic(ctx, subjectID, nameSi)
+}
+
+func (s *AdminService) ListTopics(ctx context.Context, subjectID string) ([]model.Topic, error) {
+	return s.repo.ListTopics(ctx, subjectID)
+}
+
+func (s *AdminService) DeleteTopic(ctx context.Context, id int32) error {
+	return s.repo.DeleteTopic(ctx, id)
 }
 
 // ── RBAC ──────────────────────────────────────────────────────────────────────

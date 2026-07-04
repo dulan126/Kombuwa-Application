@@ -65,6 +65,5 @@ export interface UpdateProfileRequest {
 export interface AuthState {
   user: User | null;
   isLoggedIn: boolean;
-  isDemoMode: boolean;
   isLoading: boolean;
 }

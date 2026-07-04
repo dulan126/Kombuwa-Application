@@ -7,9 +7,11 @@ import {
   adminService,
   type Stream,
   type Subject,
+  type Topic,
   type CreateStreamInput,
 } from '@/services/admin.service';
 import { isApiError } from '@/services/api-client';
+import { AdminDialog, type DialogState } from '@/components/ui/AdminDialog';
 
 // ─── Stream Card ──────────────────────────────────────────────────────────────
 // Uses <div> instead of <button> to avoid nested-button hydration error.
@@ -238,6 +240,15 @@ export default function SubjectsPage() {
   const [loadingStreamSubjects, setLoadingStreamSubjects] = useState(false);
   const [error, setError] = useState('');
 
+  const [dialog, setDialog] = useState<DialogState | null>(null);
+
+  // Topic management
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [loadingTopics, setLoadingTopics] = useState(false);
+  const [newTopicName, setNewTopicName] = useState('');
+  const [addingTopic, setAddingTopic] = useState(false);
+
   useEffect(() => {
     adminService.listStreams()
       .then(setStreams)
@@ -274,18 +285,25 @@ export default function SubjectsPage() {
     setShowStreamForm(false);
   }
 
-  async function handleDeleteStream(stream: Stream) {
-    if (!confirm(`Delete stream "${stream.name}"? This will remove all subject assignments for this stream.`)) return;
-    await adminService.deleteStream(stream.id);
-    setStreams(prev => prev.filter(s => s.id !== stream.id));
-    if (selectedStream?.id === stream.id) {
-      setSelectedStream(null);
-      setStreamSubjects([]);
-    }
-    setSubjects(prev => prev.map(s => ({
-      ...s,
-      stream_ids: s.stream_ids.filter(id => id !== stream.id),
-    })));
+  function handleDeleteStream(stream: Stream) {
+    setDialog({
+      type: 'confirm',
+      title: 'Delete Stream',
+      message: `Delete "${stream.name}"? This will remove all subject assignments for this stream.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        await adminService.deleteStream(stream.id);
+        setStreams(prev => prev.filter(s => s.id !== stream.id));
+        if (selectedStream?.id === stream.id) {
+          setSelectedStream(null);
+          setStreamSubjects([]);
+        }
+        setSubjects(prev => prev.map(s => ({
+          ...s,
+          stream_ids: s.stream_ids.filter(id => id !== stream.id),
+        })));
+      },
+    });
   }
 
   async function handleCreateSubject(id: string, nameSi: string) {
@@ -295,11 +313,66 @@ export default function SubjectsPage() {
     setShowSubjectForm(false);
   }
 
-  async function handleDeleteSubject(subject: Subject) {
-    if (!confirm(`Delete subject "${subject.name_si}" (${subject.id})? This will also remove it from all streams.`)) return;
-    await adminService.deleteSubject(subject.id);
-    setSubjects(prev => prev.filter(s => s.id !== subject.id));
-    setStreamSubjects(prev => prev.filter(s => s.id !== subject.id));
+  function handleDeleteSubject(subject: Subject) {
+    setDialog({
+      type: 'confirm',
+      title: 'Delete Subject',
+      message: `Delete "${subject.name_si}" (${subject.id})? This will also remove it from all streams.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        await adminService.deleteSubject(subject.id);
+        setSubjects(prev => prev.filter(s => s.id !== subject.id));
+        setStreamSubjects(prev => prev.filter(s => s.id !== subject.id));
+        if (selectedSubject?.id === subject.id) {
+          setSelectedSubject(null);
+          setTopics([]);
+        }
+      },
+    });
+  }
+
+  async function handleSelectSubject(s: Subject) {
+    setSelectedSubject(s);
+    setNewTopicName('');
+    setLoadingTopics(true);
+    try {
+      setTopics(await adminService.listTopics(s.id));
+    } catch {
+      setError('Failed to load topics');
+    } finally {
+      setLoadingTopics(false);
+    }
+  }
+
+  async function handleAddTopic() {
+    if (!selectedSubject || !newTopicName.trim()) return;
+    setAddingTopic(true);
+    try {
+      const topic = await adminService.createTopic({ subject_id: selectedSubject.id, name_si: newTopicName.trim() });
+      setTopics(prev => [...prev, topic]);
+      setNewTopicName('');
+    } catch (e) {
+      setError(isApiError(e) ? e.message : 'Failed to add topic');
+    } finally {
+      setAddingTopic(false);
+    }
+  }
+
+  function handleDeleteTopic(topic: Topic) {
+    setDialog({
+      type: 'confirm',
+      title: 'Delete Topic',
+      message: `Delete "${topic.name_si}"? Questions in this topic will be uncategorised.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try {
+          await adminService.deleteTopic(topic.id);
+          setTopics(prev => prev.filter(t => t.id !== topic.id));
+        } catch (e) {
+          setError(isApiError(e) ? e.message : 'Failed to delete topic');
+        }
+      },
+    });
   }
 
   async function handleAssign() {
@@ -508,7 +581,18 @@ export default function SubjectsPage() {
             ) : (
               <div className="flex flex-col gap-1 mt-1">
                 {subjects.map(s => (
-                  <div key={s.id} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-sm hover:bg-dark transition-colors">
+                  <div
+                    key={s.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleSelectSubject(s)}
+                    onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleSelectSubject(s)}
+                    className={`flex items-center justify-between gap-2 py-1.5 px-2 rounded-sm transition-colors cursor-pointer ${
+                      selectedSubject?.id === s.id
+                        ? 'bg-brand/8 border-l-2 border-brand pl-1.5'
+                        : 'hover:bg-dark border-l-2 border-transparent'
+                    }`}
+                  >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="font-mono text-[11px] text-text-muted bg-dark px-1.5 py-0.5 rounded shrink-0">{s.id}</span>
                       <span className="text-[12.5px] text-text-primary">{s.name_si}</span>
@@ -535,7 +619,7 @@ export default function SubjectsPage() {
                       )}
                       {isAdmin && (
                         <button
-                          onClick={() => handleDeleteSubject(s)}
+                          onClick={e => { e.stopPropagation(); handleDeleteSubject(s); }}
                           className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer"
                           title="Delete subject"
                         >
@@ -548,8 +632,76 @@ export default function SubjectsPage() {
               </div>
             )}
           </div>
+
+          {/* Topics panel */}
+          <div className="bg-surface rounded-base border border-border-dim p-4">
+            <h2 className="text-[13px] font-bold text-text-primary mb-3">
+              {selectedSubject
+                ? `Topics — ${selectedSubject.name_si}`
+                : 'Topics'}
+            </h2>
+
+            {!selectedSubject ? (
+              <p className="text-text-muted text-[12.5px]">
+                Click a subject above to manage its topics.
+              </p>
+            ) : (
+              <>
+                {isAdmin && (
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      className="admin-input flex-1 text-[12.5px]"
+                      placeholder="Topic name (Sinhala)"
+                      value={newTopicName}
+                      onChange={e => setNewTopicName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAddTopic()}
+                    />
+                    <button
+                      onClick={handleAddTopic}
+                      disabled={!newTopicName.trim() || addingTopic}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-40 cursor-pointer border-none shrink-0"
+                    >
+                      <Plus size={11} />
+                      {addingTopic ? '…' : 'Add'}
+                    </button>
+                  </div>
+                )}
+
+                {loadingTopics ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => <div key={i} className="h-8 rounded-sm bg-dark animate-pulse" />)}
+                  </div>
+                ) : topics.length === 0 ? (
+                  <p className="text-text-muted text-[12.5px]">No topics yet. Add one above.</p>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    {topics.map((t, idx) => (
+                      <div key={t.id} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-sm hover:bg-dark transition-colors group">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-5 h-5 rounded-full bg-brand/10 text-brand text-[10px] font-bold flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <span className="text-[12.5px] text-text-primary truncate">{t.name_si}</span>
+                        </div>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteTopic(t)}
+                            className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100"
+                            title="Delete topic"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
+      {dialog && <AdminDialog {...dialog} onClose={() => setDialog(null)} />}
     </div>
   );
 }

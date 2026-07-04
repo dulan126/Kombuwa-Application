@@ -89,8 +89,23 @@ type AdminPaperRow struct {
 	AttemptCount int64  `json:"attempt_count"`
 }
 
-// ListAllPapers returns all papers (published or not) with attempt counts.
-func (r *AdminRepo) ListAllPapers(ctx context.Context) ([]AdminPaperRow, error) {
+// ListPapers returns paginated papers (published or not) with attempt counts and total count.
+func (r *AdminRepo) ListPapers(ctx context.Context, page, limit int) ([]AdminPaperRow, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+
+	var total int
+	if err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM papers`,
+	).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count admin papers: %w", err)
+	}
+
 	rows, err := r.pool.Query(ctx,
 		`SELECT p.id, p.type, p.subject_id, p.grade, p.title,
 		        p.question_count, p.is_published, p.ms_available,
@@ -101,10 +116,12 @@ func (r *AdminRepo) ListAllPapers(ctx context.Context) ([]AdminPaperRow, error) 
 		 JOIN subjects s ON s.id = p.subject_id
 		 LEFT JOIN attempts a ON a.paper_id = p.id AND a.is_completed = TRUE
 		 GROUP BY p.id, s.name_si
-		 ORDER BY p.created_at DESC`,
+		 ORDER BY p.created_at DESC
+		 LIMIT $1 OFFSET $2`,
+		limit, offset,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("list admin papers: %w", err)
+		return nil, 0, fmt.Errorf("list admin papers: %w", err)
 	}
 	defer rows.Close()
 
@@ -119,7 +136,7 @@ func (r *AdminRepo) ListAllPapers(ctx context.Context) ([]AdminPaperRow, error) 
 			&row.SubjectName, &row.AttemptCount,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("scan admin paper: %w", err)
+			return nil, 0, fmt.Errorf("scan admin paper: %w", err)
 		}
 		row.ID, _ = uuid.Parse(idStr)
 		row.Type = model.PaperType(paperType)
@@ -127,7 +144,42 @@ func (r *AdminRepo) ListAllPapers(ctx context.Context) ([]AdminPaperRow, error) 
 		row.SubjectID = subjectID
 		out = append(out, row)
 	}
-	return out, rows.Err()
+	return out, total, rows.Err()
+}
+
+// GetPaper returns a single paper row by ID (any publish state) with subject name and attempt count.
+func (r *AdminRepo) GetPaper(ctx context.Context, paperID uuid.UUID) (*AdminPaperRow, error) {
+	var row AdminPaperRow
+	var idStr, paperType, grade, subjectID string
+	err := r.pool.QueryRow(ctx,
+		`SELECT p.id, p.type, p.subject_id, p.grade, p.title,
+		        p.question_count, p.is_published, p.ms_available,
+		        p.available_from, p.available_until, p.created_at,
+		        s.name_si AS subject_name,
+		        COUNT(a.id) AS attempt_count
+		 FROM papers p
+		 JOIN subjects s ON s.id = p.subject_id
+		 LEFT JOIN attempts a ON a.paper_id = p.id AND a.is_completed = TRUE
+		 WHERE p.id = $1
+		 GROUP BY p.id, s.name_si`,
+		paperID,
+	).Scan(
+		&idStr, &paperType, &subjectID, &grade, &row.Title,
+		&row.QuestionCount, &row.IsPublished, &row.MSAvailable,
+		&row.AvailableFrom, &row.AvailableUntil, &row.CreatedAt,
+		&row.SubjectName, &row.AttemptCount,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get admin paper: %w", err)
+	}
+	row.ID, _ = uuid.Parse(idStr)
+	row.Type = model.PaperType(paperType)
+	row.Grade = model.Grade(grade)
+	row.SubjectID = subjectID
+	return &row, nil
 }
 
 // SetPaperPublished toggles is_published on a paper. Returns the updated state.
@@ -150,6 +202,7 @@ type AdminUserFilter struct {
 	Stream string
 	Grade  string
 	Page   int
+	Limit  int
 }
 
 // AdminUserRow is the user row shape for admin listing.
@@ -166,9 +219,12 @@ type AdminUserRow struct {
 	LastLogin *string    `json:"last_login,omitempty"`
 }
 
-// ListUsers returns paginated student users with optional stream/grade filter.
-func (r *AdminRepo) ListUsers(ctx context.Context, f AdminUserFilter) ([]AdminUserRow, error) {
-	const pageSize = 50
+// ListUsers returns paginated student users with optional stream/grade filter, plus total count.
+func (r *AdminRepo) ListUsers(ctx context.Context, f AdminUserFilter) ([]AdminUserRow, int, error) {
+	pageSize := f.Limit
+	if pageSize < 1 {
+		pageSize = 50
+	}
 	page := f.Page
 	if page < 1 {
 		page = 1
@@ -187,6 +243,14 @@ func (r *AdminRepo) ListUsers(ctx context.Context, f AdminUserFilter) ([]AdminUs
 		wheres = append(wheres, fmt.Sprintf("grade = $%d::grade_enum", len(params)))
 	}
 
+	whereClause := strings.Join(wheres, " AND ")
+
+	var total int
+	countQ := fmt.Sprintf(`SELECT COUNT(*) FROM users WHERE %s`, whereClause)
+	if err := r.pool.QueryRow(ctx, countQ, params...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count users: %w", err)
+	}
+
 	params = append(params, pageSize, offset)
 	limitIdx := len(params) - 1
 	offsetIdx := len(params)
@@ -195,12 +259,12 @@ func (r *AdminRepo) ListUsers(ctx context.Context, f AdminUserFilter) ([]AdminUs
 		`SELECT id, name, mobile, stream, grade, district, school, exam_year, created_at, last_login
 		 FROM users WHERE %s
 		 ORDER BY created_at DESC LIMIT $%d OFFSET $%d`,
-		strings.Join(wheres, " AND "), limitIdx, offsetIdx,
+		whereClause, limitIdx, offsetIdx,
 	)
 
 	rows, err := r.pool.Query(ctx, q, params...)
 	if err != nil {
-		return nil, fmt.Errorf("list users: %w", err)
+		return nil, 0, fmt.Errorf("list users: %w", err)
 	}
 	defer rows.Close()
 
@@ -212,7 +276,7 @@ func (r *AdminRepo) ListUsers(ctx context.Context, f AdminUserFilter) ([]AdminUs
 		err := rows.Scan(&idStr, &u.Name, &u.Mobile, &u.Stream, &u.Grade,
 			&u.District, &u.School, &u.ExamYear, &createdAt, &lastLogin)
 		if err != nil {
-			return nil, fmt.Errorf("scan user: %w", err)
+			return nil, 0, fmt.Errorf("scan user: %w", err)
 		}
 		u.ID, _ = uuid.Parse(idStr)
 		if createdAt != nil {
@@ -225,7 +289,7 @@ func (r *AdminRepo) ListUsers(ctx context.Context, f AdminUserFilter) ([]AdminUs
 		}
 		out = append(out, u)
 	}
-	return out, rows.Err()
+	return out, total, rows.Err()
 }
 
 // ── Streams ───────────────────────────────────────────────────────────────────
@@ -428,6 +492,36 @@ func (r *AdminRepo) CreateTopic(ctx context.Context, subjectID, nameSi string) (
 		return 0, fmt.Errorf("create topic: %w", err)
 	}
 	return id, nil
+}
+
+// ListTopics returns all topics for a given subject ordered by sort_order then id.
+func (r *AdminRepo) ListTopics(ctx context.Context, subjectID string) ([]model.Topic, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, subject_id, name_si, sort_order FROM topics WHERE subject_id = $1 ORDER BY sort_order, id`,
+		subjectID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list topics: %w", err)
+	}
+	defer rows.Close()
+	var out []model.Topic
+	for rows.Next() {
+		var t model.Topic
+		if err := rows.Scan(&t.ID, &t.SubjectID, &t.NameSi, &t.SortOrder); err != nil {
+			return nil, fmt.Errorf("scan topic: %w", err)
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+// DeleteTopic removes a topic by id. Questions referencing it get topic_id = NULL via FK.
+func (r *AdminRepo) DeleteTopic(ctx context.Context, id int32) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM topics WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete topic: %w", err)
+	}
+	return nil
 }
 
 // ── Paper CRUD ────────────────────────────────────────────────────────────────

@@ -78,7 +78,8 @@ make run
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/` | Bearer | List papers (filtered by type/subject/grade) |
-| GET | `/{id}/questions` | Bearer | Start exam — questions without answers |
+| GET | `/{id}/overview` | Bearer | Pre-start lobby data — status + timing, no questions/answers |
+| POST | `/{id}/start` | Bearer | Start exam (consumes single attempt, idempotent) → questions without answers |
 | POST | `/{id}/submit` | Bearer | Submit answers → server-side score |
 | GET | `/{id}/marking-scheme` | Bearer | Answers + student review (if ms_available) |
 | GET | `/{id}/rankings` | Bearer | Leaderboard (Redis-cached 5 min) |

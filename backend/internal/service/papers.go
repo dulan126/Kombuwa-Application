@@ -41,12 +41,26 @@ func (s *PapersService) GetUserStats(ctx context.Context, userID uuid.UUID) (*re
 	return s.repo.GetUserStats(ctx, userID)
 }
 
-// ── Exam start (questions without answers) ────────────────────────────────────
+// ── Exam attempt state machine ────────────────────────────────────────────────
+//
+// An attempt moves through: not_started → in_progress → submitted.
+// A fourth derived state, "expired", is an in_progress attempt whose server-side
+// deadline (start + duration, capped by the paper window) has passed; it is
+// auto-finalised on the next start/submit interaction.
+//
+// The state is derived from the attempt row rather than stored in a column:
+//   • no row                    → not_started
+//   • row, is_completed = false → in_progress (or expired, once the clock runs out)
+//   • row, is_completed = true  → submitted
 
-type QuestionsResponse struct {
-	Paper     paperSummary   `json:"paper"`
-	Questions []model.Question `json:"questions"`
-}
+type ExamStatus string
+
+const (
+	StatusNotStarted ExamStatus = "not_started"
+	StatusInProgress ExamStatus = "in_progress"
+	StatusSubmitted  ExamStatus = "submitted"
+	StatusExpired    ExamStatus = "expired"
+)
 
 type paperSummary struct {
 	ID             uuid.UUID  `json:"id"`
@@ -61,7 +75,77 @@ type paperSummary struct {
 	AvailableUntil *time.Time `json:"available_until,omitempty"`
 }
 
-func (s *PapersService) GetQuestions(ctx context.Context, paperID, userID uuid.UUID) (*QuestionsResponse, error) {
+// ExamOverviewResponse is the pre-start payload. It deliberately carries NO
+// questions and NO answers — only what the lobby needs to render.
+type ExamOverviewResponse struct {
+	Paper            paperSummary `json:"paper"`
+	Status           ExamStatus   `json:"status"`
+	RemainingSeconds int          `json:"remaining_seconds"`
+}
+
+// ExamStartResponse is returned only after a server-validated start. Questions
+// never include correct_option (stripped via the model's json:"-" tag).
+type ExamStartResponse struct {
+	Paper            paperSummary     `json:"paper"`
+	Questions        []model.Question `json:"questions"`
+	Status           ExamStatus       `json:"status"`
+	RemainingSeconds int              `json:"remaining_seconds"`
+	StartedAt        time.Time        `json:"started_at"`
+}
+
+func summaryFromPaper(p *repository.PaperRow) paperSummary {
+	return paperSummary{
+		ID:             p.ID,
+		Type:           string(p.Type),
+		Title:          p.Title,
+		SubjectID:      p.SubjectID,
+		SubjectName:    p.SubjectName,
+		Grade:          string(p.Grade),
+		TimeSeconds:    p.TimeSeconds,
+		QuestionCount:  p.QuestionCount,
+		AvailableFrom:  p.AvailableFrom,
+		AvailableUntil: p.AvailableUntil,
+	}
+}
+
+// examDeadline is the moment an in-progress attempt must be finalised: the
+// start time plus the paper's duration, but never later than the paper window.
+func examDeadline(startedAt time.Time, p *repository.PaperRow) time.Time {
+	deadline := startedAt.Add(time.Duration(p.TimeSeconds) * time.Second)
+	if p.AvailableUntil != nil && p.AvailableUntil.Before(deadline) {
+		deadline = *p.AvailableUntil
+	}
+	return deadline
+}
+
+// remainingSeconds returns whole seconds left until the deadline, clamped at 0.
+func remainingSeconds(deadline, now time.Time) int {
+	secs := int(deadline.Sub(now).Seconds())
+	if secs < 0 {
+		return 0
+	}
+	return secs
+}
+
+// ensureWindowOpen rejects a fresh start when the paper's availability window is
+// not currently open. Applies identically to daily and SRP papers.
+func ensureWindowOpen(p *repository.PaperRow, now time.Time) error {
+	label := "Daily MCQ"
+	if p.Type == model.PaperSRP {
+		label = "SRP paper"
+	}
+	if now.Before(p.AvailableFrom) {
+		return httputil.E(http.StatusForbidden, label+" not yet available")
+	}
+	if p.AvailableUntil != nil && now.After(*p.AvailableUntil) {
+		return httputil.E(http.StatusForbidden, label+" window has closed")
+	}
+	return nil
+}
+
+// GetExamOverview returns the pre-start lobby payload for a paper. It is
+// read-only: it never creates an attempt and never returns questions or answers.
+func (s *PapersService) GetExamOverview(ctx context.Context, paperID, userID uuid.UUID) (*ExamOverviewResponse, error) {
 	paper, err := s.repo.GetPaper(ctx, paperID)
 	if err != nil {
 		return nil, fmt.Errorf("get paper: %w", err)
@@ -70,23 +154,45 @@ func (s *PapersService) GetQuestions(ctx context.Context, paperID, userID uuid.U
 		return nil, httputil.E(http.StatusNotFound, "Paper not found")
 	}
 
-	// SRP: reject if window has closed
-	if paper.Type == model.PaperSRP && paper.AvailableUntil != nil && time.Now().After(*paper.AvailableUntil) {
-		return nil, httputil.E(http.StatusForbidden, "SRP window has closed")
+	attempt, err := s.repo.FindAttempt(ctx, paperID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("find attempt: %w", err)
 	}
 
-	// Daily: enforce the full-day window (00:00–23:59 SLST)
-	if paper.Type == model.PaperDaily {
-		now := time.Now()
-		if now.Before(paper.AvailableFrom) {
-			return nil, httputil.E(http.StatusForbidden, "Daily MCQ not yet available")
-		}
-		if paper.AvailableUntil != nil && now.After(*paper.AvailableUntil) {
-			return nil, httputil.E(http.StatusForbidden, "Daily MCQ window has closed")
+	now := time.Now()
+	resp := &ExamOverviewResponse{Paper: summaryFromPaper(paper)}
+
+	switch {
+	case attempt == nil:
+		resp.Status = StatusNotStarted
+	case attempt.IsCompleted:
+		resp.Status = StatusSubmitted
+	default:
+		remaining := remainingSeconds(examDeadline(attempt.StartedAt, paper), now)
+		if remaining <= 0 {
+			resp.Status = StatusExpired
+		} else {
+			resp.Status = StatusInProgress
+			resp.RemainingSeconds = remaining
 		}
 	}
 
-	// Check for existing attempt
+	return resp, nil
+}
+
+// StartExam transitions the attempt to in_progress and returns the questions
+// (without answers). It is idempotent: a second start on an in-progress attempt
+// resumes the same attempt with the same started_at, so a refresh or a double
+// click never hands out a fresh attempt or resets the clock.
+func (s *PapersService) StartExam(ctx context.Context, paperID, userID uuid.UUID) (*ExamStartResponse, error) {
+	paper, err := s.repo.GetPaper(ctx, paperID)
+	if err != nil {
+		return nil, fmt.Errorf("get paper: %w", err)
+	}
+	if paper == nil {
+		return nil, httputil.E(http.StatusNotFound, "Paper not found")
+	}
+
 	attempt, err := s.repo.FindAttempt(ctx, paperID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("find attempt: %w", err)
@@ -96,11 +202,37 @@ func (s *PapersService) GetQuestions(ctx context.Context, paperID, userID uuid.U
 			map[string]any{"attemptId": attempt.ID})
 	}
 
-	// Create attempt record if this is the first access
+	now := time.Now()
+
+	// First start consumes the single attempt — only allowed while the window is open.
 	if attempt == nil {
+		if err := ensureWindowOpen(paper, now); err != nil {
+			return nil, err
+		}
 		if err := s.repo.CreateAttemptIfNotExists(ctx, userID, paperID, paper.QuestionCount); err != nil {
 			return nil, fmt.Errorf("create attempt: %w", err)
 		}
+		attempt, err = s.repo.FindAttempt(ctx, paperID, userID)
+		if err != nil {
+			return nil, fmt.Errorf("reload attempt: %w", err)
+		}
+		if attempt == nil {
+			return nil, fmt.Errorf("attempt vanished after create")
+		}
+	}
+
+	// Resume path: if the clock has already run out, finalise now rather than
+	// handing back a playable exam. Answers were never synced mid-exam (resume,
+	// same-clock policy), so an expired attempt finalises with score 0.
+	deadline := examDeadline(attempt.StartedAt, paper)
+	remaining := remainingSeconds(deadline, now)
+	if remaining <= 0 {
+		if err := s.finalizeExpired(ctx, attempt.ID, paper, attempt.StartedAt); err != nil {
+			return nil, err
+		}
+		go s.computeRankings(paperID)
+		return nil, httputil.Ewith(http.StatusForbidden, "Exam time has expired",
+			map[string]any{"attemptId": attempt.ID})
 	}
 
 	questions, err := s.repo.GetQuestionsNoAnswers(ctx, paperID)
@@ -108,21 +240,32 @@ func (s *PapersService) GetQuestions(ctx context.Context, paperID, userID uuid.U
 		return nil, fmt.Errorf("get questions: %w", err)
 	}
 
-	return &QuestionsResponse{
-		Paper: paperSummary{
-			ID:             paper.ID,
-			Type:           string(paper.Type),
-			Title:          paper.Title,
-			SubjectID:      paper.SubjectID,
-			SubjectName:    paper.SubjectName,
-			Grade:          string(paper.Grade),
-			TimeSeconds:    paper.TimeSeconds,
-			QuestionCount:  paper.QuestionCount,
-			AvailableFrom:  paper.AvailableFrom,
-			AvailableUntil: paper.AvailableUntil,
-		},
-		Questions: questions,
+	return &ExamStartResponse{
+		Paper:            summaryFromPaper(paper),
+		Questions:        questions,
+		Status:           StatusInProgress,
+		RemainingSeconds: remaining,
+		StartedAt:        attempt.StartedAt,
 	}, nil
+}
+
+// finalizeExpired submits an in-progress attempt whose deadline has passed,
+// scoring whatever answers were persisted (empty ⇒ score 0) and recording the
+// full elapsed time capped at the paper duration.
+func (s *PapersService) finalizeExpired(ctx context.Context, attemptID uuid.UUID, paper *repository.PaperRow, startedAt time.Time) error {
+	timeTaken := int(examDeadline(startedAt, paper).Sub(startedAt).Seconds())
+	if timeTaken < 0 {
+		timeTaken = 0
+	}
+	if err := s.repo.CompleteAttempt(ctx, repository.CompleteAttemptParams{
+		AttemptID:     attemptID,
+		Score:         0,
+		Answers:       map[string]string{},
+		TimeTakenSecs: timeTaken,
+	}); err != nil {
+		return fmt.Errorf("finalize expired attempt: %w", err)
+	}
+	return nil
 }
 
 // ── Submit ────────────────────────────────────────────────────────────────────
@@ -140,6 +283,7 @@ type SubmitResult struct {
 }
 
 func (s *PapersService) Submit(ctx context.Context, paperID, userID uuid.UUID, in SubmitInput) (*SubmitResult, error) {
+	// Reject submissions with no active attempt (not_started).
 	attempt, err := s.repo.FindAttempt(ctx, paperID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("find attempt: %w", err)
@@ -149,6 +293,14 @@ func (s *PapersService) Submit(ctx context.Context, paperID, userID uuid.UUID, i
 	}
 	if attempt.IsCompleted {
 		return nil, httputil.E(http.StatusConflict, "Already submitted")
+	}
+
+	paper, err := s.repo.GetPaper(ctx, paperID)
+	if err != nil {
+		return nil, fmt.Errorf("get paper: %w", err)
+	}
+	if paper == nil {
+		return nil, httputil.E(http.StatusNotFound, "Paper not found")
 	}
 
 	// Server-side scoring
@@ -167,7 +319,13 @@ func (s *PapersService) Submit(ctx context.Context, paperID, userID uuid.UUID, i
 		}
 	}
 
-	timeTaken := int(time.Since(attempt.StartedAt).Seconds())
+	// Server-authoritative elapsed time, clamped to the exam deadline so a late
+	// (e.g. throttled auto-submit) submission can't inflate the ranking tiebreaker.
+	now := time.Now()
+	if deadline := examDeadline(attempt.StartedAt, paper); now.After(deadline) {
+		now = deadline
+	}
+	timeTaken := int(now.Sub(attempt.StartedAt).Seconds())
 	if timeTaken < 0 {
 		timeTaken = 0
 	}
@@ -408,8 +566,20 @@ func (s *PapersService) CreatePaper(ctx context.Context, createdBy uuid.UUID, in
 			in.AvailableUntil = &until
 		}
 	case model.PaperSRP:
-		if len(in.Questions) != 30 {
-			return uuid.UUID{}, httputil.E(http.StatusUnprocessableEntity, "SRP must have exactly 30 questions")
+		if len(in.Questions) != 50 {
+			return uuid.UUID{}, httputil.E(http.StatusUnprocessableEntity, "SRP must have exactly 50 questions")
+		}
+		srpSlst := time.FixedZone("SLST", 5*3600+30*60)
+		srpFrom := in.AvailableFrom.In(srpSlst)
+		if srpFrom.Weekday() != time.Saturday {
+			return uuid.UUID{}, httputil.E(http.StatusBadRequest, "SRP papers must start on a Saturday (SLST)")
+		}
+		if in.AvailableUntil == nil {
+			sundayEnd := time.Date(
+				srpFrom.Year(), srpFrom.Month(), srpFrom.Day()+1,
+				23, 59, 59, 0, srpSlst,
+			).UTC()
+			in.AvailableUntil = &sundayEnd
 		}
 	default:
 		return uuid.UUID{}, httputil.E(http.StatusBadRequest, "type must be 'daily' or 'srp'")

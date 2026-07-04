@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { adminService, type Subject } from '@/services/admin.service';
@@ -8,7 +8,7 @@ import { isApiError } from '@/services/api-client';
 
 const PAPER_TYPES = [
   { value: 'daily', label: 'Daily MCQ (10 questions)' },
-  { value: 'srp',   label: 'SRP Paper (30 questions)' },
+  { value: 'srp',   label: 'SRP Paper (50 questions)' },
 ];
 
 const GRADES = [
@@ -16,10 +16,31 @@ const GRADES = [
   { value: '13', label: 'Grade 13' },
 ];
 
-// Convert a YYYY-MM-DD date string to SLST (UTC+5:30) start/end ISO timestamps
+const TIME_DEFAULTS_MINS: Record<string, number> = { daily: 20, srp: 120 };
+
+function todayISO(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+function nextSaturdayISO(): string {
+  const d = new Date();
+  const day = d.getUTCDay();
+  const daysUntilSat = day === 6 ? 7 : (6 - day + 7) % 7 || 7;
+  const sat = new Date(d);
+  sat.setUTCDate(d.getUTCDate() + daysUntilSat);
+  return sat.toISOString().split('T')[0];
+}
+
+function nextDay(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().split('T')[0];
+}
+
 function toSlstStart(date: string): string {
   return new Date(`${date}T00:00:00+05:30`).toISOString();
 }
+
 function toSlstEnd(date: string): string {
   return new Date(`${date}T23:59:59+05:30`).toISOString();
 }
@@ -29,6 +50,8 @@ export default function NewPaperPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [titleManuallyEdited, setTitleManuallyEdited] = useState(false);
+  const [dateError, setDateError] = useState('');
 
   useEffect(() => {
     adminService.listSubjects().then(setSubjects).catch(() => {});
@@ -39,12 +62,36 @@ export default function NewPaperPage() {
     type:         'daily',
     subject_id:   '',
     grade:        '13',
-    time_seconds: 1800,
+    time_minutes: 20,
     date:         '',
   });
 
-  function setField<K extends keyof typeof form>(key: K, value: typeof form[K]) {
-    setForm(prev => ({ ...prev, [key]: value }));
+  const autoTitle = useMemo(() => {
+    const subject = subjects.find(s => s.id === form.subject_id);
+    if (!subject || !form.date) return '';
+    const typeLabel = form.type === 'srp' ? 'SRP' : 'Daily';
+    return `${subject.name_si} ${typeLabel} MCQ - ${form.date}`;
+  }, [subjects, form.subject_id, form.type, form.date]);
+
+  useEffect(() => {
+    if (!titleManuallyEdited && autoTitle) {
+      setForm(prev => ({ ...prev, title: autoTitle }));
+    }
+  }, [autoTitle, titleManuallyEdited]);
+
+  function handleTypeChange(t: string) {
+    setForm(prev => ({ ...prev, type: t, time_minutes: TIME_DEFAULTS_MINS[t] ?? 20 }));
+    setDateError('');
+  }
+
+  function handleDateChange(val: string) {
+    setForm(prev => ({ ...prev, date: val }));
+    if (form.type === 'srp' && val) {
+      const day = new Date(val).getUTCDay();
+      setDateError(day !== 6 ? 'SRP papers must start on a Saturday' : '');
+    } else {
+      setDateError('');
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -53,17 +100,26 @@ export default function NewPaperPage() {
       setError('Title, subject, and date are required.');
       return;
     }
+    if (dateError) {
+      setError(dateError);
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
+      const availableFrom = toSlstStart(form.date);
+      const availableUntil = form.type === 'srp'
+        ? new Date(`${nextDay(form.date)}T23:59:59+05:30`).toISOString()
+        : toSlstEnd(form.date);
+
       const { id } = await adminService.createDraftPaper({
         type:            form.type,
         subject_id:      form.subject_id,
         grade:           form.grade,
         title:           form.title,
-        time_seconds:    form.time_seconds,
-        available_from:  toSlstStart(form.date),
-        available_until: toSlstEnd(form.date),
+        time_seconds:    form.time_minutes * 60,
+        available_from:  availableFrom,
+        available_until: availableUntil,
       });
       router.push(`/admin/papers/${id}`);
     } catch (err) {
@@ -71,6 +127,9 @@ export default function NewPaperPage() {
       setSubmitting(false);
     }
   }
+
+  const isSRP = form.type === 'srp';
+  const dateMin = isSRP ? nextSaturdayISO() : todayISO();
 
   return (
     <div className="max-w-xl">
@@ -91,25 +150,22 @@ export default function NewPaperPage() {
           </div>
         )}
 
-        <Field label="Title">
-          <input
-            type="text"
-            required
-            placeholder="e.g. Chemistry Daily MCQ — 2026-07-10"
-            value={form.title}
-            onChange={e => setField('title', e.target.value)}
-            className="admin-input"
-          />
-        </Field>
-
         <div className="grid grid-cols-2 gap-3">
           <Field label="Type">
-            <select value={form.type} onChange={e => setField('type', e.target.value)} className="admin-input">
+            <select
+              value={form.type}
+              onChange={e => handleTypeChange(e.target.value)}
+              className="admin-input"
+            >
               {PAPER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </Field>
           <Field label="Grade">
-            <select value={form.grade} onChange={e => setField('grade', e.target.value)} className="admin-input">
+            <select
+              value={form.grade}
+              onChange={e => setForm(prev => ({ ...prev, grade: e.target.value }))}
+              className="admin-input"
+            >
               {GRADES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
             </select>
           </Field>
@@ -119,7 +175,7 @@ export default function NewPaperPage() {
           <select
             required
             value={form.subject_id}
-            onChange={e => setField('subject_id', e.target.value)}
+            onChange={e => setForm(prev => ({ ...prev, subject_id: e.target.value }))}
             className="admin-input"
           >
             <option value="">— select subject —</option>
@@ -129,24 +185,52 @@ export default function NewPaperPage() {
           </select>
         </Field>
 
-        <Field label="Time Limit (seconds)">
+        <Field
+          label={isSRP ? 'Start Date (Saturday only)' : 'Paper Date'}
+          hint={isSRP ? 'Saturdays only — runs until Sunday 23:59 SLST' : 'Available 00:00 – 23:59 SLST on this day'}
+        >
           <input
-            type="number"
-            min={60}
-            step={60}
+            type="date"
             required
-            value={form.time_seconds}
-            onChange={e => setField('time_seconds', Number(e.target.value))}
+            min={dateMin}
+            step={isSRP ? 7 : undefined}
+            value={form.date}
+            onChange={e => handleDateChange(e.target.value)}
+            className="admin-input"
+          />
+          {dateError && (
+            <p className="text-[11.5px] text-danger mt-0.5">{dateError}</p>
+          )}
+          {isSRP && form.date && !dateError && (
+            <p className="text-[11.5px] text-text-muted mt-0.5">
+              Window: {form.date} 00:00 → {nextDay(form.date)} 23:59 SLST
+            </p>
+          )}
+        </Field>
+
+        <Field label="Title">
+          <input
+            type="text"
+            required
+            placeholder="Auto-generated from selections above"
+            value={form.title}
+            onChange={e => {
+              const val = e.target.value;
+              setTitleManuallyEdited(!!val);
+              setForm(prev => ({ ...prev, title: val }));
+            }}
             className="admin-input"
           />
         </Field>
 
-        <Field label="Paper Date" hint="Available 00:00 – 23:59 SLST on this day">
+        <Field label="Time Limit (minutes)" hint="20 min for Daily · 120 min for SRP">
           <input
-            type="date"
+            type="number"
+            min={1}
+            step={1}
             required
-            value={form.date}
-            onChange={e => setField('date', e.target.value)}
+            value={form.time_minutes}
+            onChange={e => setForm(prev => ({ ...prev, time_minutes: Number(e.target.value) }))}
             className="admin-input"
           />
         </Field>

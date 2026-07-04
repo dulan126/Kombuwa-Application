@@ -1,15 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Pagination } from '@/components/ui/Pagination';
 import { useAuth } from '@/hooks/useAuth';
 import {
   adminService,
   type PoolQuestion,
   type PoolQuestionInput,
   type Subject,
+  type Topic,
 } from '@/services/admin.service';
 import { isApiError } from '@/services/api-client';
+import { AdminDialog, type DialogState } from '@/components/ui/AdminDialog';
 
 const EMPTY_Q: PoolQuestionInput = {
   question_text: '', option_a: '', option_b: '', option_c: '', option_d: '',
@@ -32,7 +35,13 @@ function QuestionModal({
   subjects: Subject[];
 }) {
   const [q, setQ] = useState<PoolQuestionInput>(initial);
+  const [availableTopics, setAvailableTopics] = useState<Topic[]>([]);
   const set = (k: keyof PoolQuestionInput, v: string) => setQ(prev => ({ ...prev, [k]: v }));
+
+  useEffect(() => {
+    if (!q.subject_id) { setAvailableTopics([]); setQ(prev => ({ ...prev, topic_id: null })); return; }
+    adminService.listTopics(q.subject_id).then(setAvailableTopics).catch(() => setAvailableTopics([]));
+  }, [q.subject_id]);
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -70,12 +79,28 @@ function QuestionModal({
             </select>
           </div>
           <input className="admin-input" placeholder="Explanation (optional)" value={q.explanation} onChange={e => set('explanation', e.target.value)} />
-          <select className="admin-input" value={q.subject_id ?? ''} onChange={e => set('subject_id', e.target.value)}>
+          <select
+            className="admin-input"
+            value={q.subject_id ?? ''}
+            onChange={e => { set('subject_id', e.target.value); setQ(prev => ({ ...prev, topic_id: null })); }}
+          >
             <option value="">— subject (optional) —</option>
             {subjects.map(s => (
               <option key={s.id} value={s.id}>{s.name_si} ({s.id})</option>
             ))}
           </select>
+          {availableTopics.length > 0 && (
+            <select
+              className="admin-input"
+              value={q.topic_id ?? ''}
+              onChange={e => setQ(prev => ({ ...prev, topic_id: e.target.value ? Number(e.target.value) : null }))}
+            >
+              <option value="">— topic (optional) —</option>
+              {availableTopics.map(t => (
+                <option key={t.id} value={t.id}>{t.name_si}</option>
+              ))}
+            </select>
+          )}
           <input className="admin-input" placeholder="Slug (auto-generated if blank)" value={q.slug} onChange={e => set('slug', e.target.value)} />
           <div className="flex gap-2 pt-1">
             <button
@@ -115,6 +140,7 @@ export default function QuestionsPage() {
   const [modal, setModal] = useState<null | { mode: 'create' } | { mode: 'edit'; q: PoolQuestion }>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [dialog, setDialog] = useState<DialogState | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
@@ -129,8 +155,8 @@ export default function QuestionsPage() {
         page,
         limit: LIMIT,
       });
-      setQuestions(res.questions);
-      setTotal(res.total);
+      setQuestions(res.questions ?? []);
+      setTotal(res.total ?? 0);
     } catch {
       // ignore
     } finally {
@@ -153,24 +179,31 @@ export default function QuestionsPage() {
       }
       setModal(null);
     } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to save question');
+      setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to save question' });
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete(q: PoolQuestion) {
-    if (!confirm(`Delete question "${q.slug}"? This will fail if it's still attached to any paper.`)) return;
-    setDeletingId(q.id);
-    try {
-      await adminService.deletePoolQuestion(q.id);
-      setQuestions(prev => prev.filter(p => p.id !== q.id));
-      setTotal(t => t - 1);
-    } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to delete');
-    } finally {
-      setDeletingId(null);
-    }
+  function handleDelete(q: PoolQuestion) {
+    setDialog({
+      type: 'confirm',
+      title: 'Delete Question',
+      message: `Delete "${q.slug}"? This will fail if it's still attached to any paper.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setDeletingId(q.id);
+        try {
+          await adminService.deletePoolQuestion(q.id);
+          setQuestions(prev => prev.filter(p => p.id !== q.id));
+          setTotal(t => t - 1);
+        } catch (err) {
+          setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to delete' });
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   }
 
   const totalPages = Math.ceil(total / LIMIT);
@@ -259,28 +292,7 @@ export default function QuestionsPage() {
           </div>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-border-dim flex items-center justify-between text-[12px] text-text-muted">
-            <span>Page {page} of {totalPages}</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-sm bg-dark border border-border-dim hover:border-gold transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                <ChevronLeft size={13} /> Prev
-              </button>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-sm bg-dark border border-border-dim hover:border-gold transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                Next <ChevronRight size={13} />
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination page={page} totalPages={totalPages} onPage={setPage} />
       </div>
 
       {modal && (
@@ -295,6 +307,7 @@ export default function QuestionsPage() {
           subjects={subjects}
         />
       )}
+      {dialog && <AdminDialog {...dialog} onClose={() => setDialog(null)} />}
     </div>
   );
 }

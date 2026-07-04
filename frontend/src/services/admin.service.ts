@@ -28,6 +28,13 @@ export interface AdminPaper {
   attempt_count: number;
 }
 
+export interface Topic {
+  id: number;
+  subject_id: string;
+  name_si: string;
+  sort_order: number;
+}
+
 export interface PoolQuestion {
   id: number;
   slug: string;
@@ -40,6 +47,7 @@ export interface PoolQuestion {
   explanation?: string;
   image_url?: string;
   subject_id?: string;
+  topic_id?: number | null;
   created_by?: string;
   created_at?: string;
 }
@@ -95,6 +103,7 @@ export interface PoolQuestionInput {
   explanation?: string;
   image_url?: string;
   subject_id?: string;
+  topic_id?: number | null;
   slug?: string;
 }
 
@@ -125,6 +134,16 @@ export interface CreateStreamInput {
   sort_order?: number;
 }
 
+export interface AdminPapersPage {
+  papers: AdminPaper[];
+  total: number;
+}
+
+export interface AdminUsersPage {
+  users: AdminUser[];
+  total: number;
+}
+
 // ─── Admin Service ────────────────────────────────────────────────────────────
 
 export const adminService = {
@@ -133,8 +152,18 @@ export const adminService = {
   },
 
   // Papers
-  async listPapers(): Promise<AdminPaper[]> {
-    return apiClient.get<AdminPaper[]>('/admin/papers');
+  async listPapers(params?: { page?: number; limit?: number }): Promise<AdminPapersPage> {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    const q = qs.toString();
+    const raw = await apiClient.get<AdminPaper[] | AdminPapersPage>(`/admin/papers${q ? '?' + q : ''}`);
+    if (Array.isArray(raw)) return { papers: raw, total: raw.length };
+    return raw;
+  },
+
+  async getPaper(id: string): Promise<AdminPaper> {
+    return apiClient.get<AdminPaper>(`/admin/papers/${id}`);
   },
 
   async createDraftPaper(data: CreateDraftPaperInput): Promise<{ id: string }> {
@@ -199,13 +228,16 @@ export const adminService = {
   },
 
   // Users
-  async listUsers(params?: { stream?: string; grade?: string; page?: number }): Promise<AdminUser[]> {
+  async listUsers(params?: { stream?: string; grade?: string; page?: number; limit?: number }): Promise<AdminUsersPage> {
     const qs = new URLSearchParams();
     if (params?.stream) qs.set('stream', params.stream);
     if (params?.grade) qs.set('grade', params.grade);
     if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
     const q = qs.toString();
-    return apiClient.get<AdminUser[]>(`/admin/users${q ? '?' + q : ''}`);
+    const raw = await apiClient.get<AdminUser[] | AdminUsersPage>(`/admin/users${q ? '?' + q : ''}`);
+    if (Array.isArray(raw)) return { users: raw, total: raw.length };
+    return raw;
   },
 
   async updateUserRole(userId: string, role: string): Promise<void> {
@@ -239,6 +271,19 @@ export const adminService = {
 
   async removeSubjectFromStream(streamId: string, subjectId: string): Promise<void> {
     await apiClient.delete(`/admin/streams/${streamId}/subjects/${subjectId}`);
+  },
+
+  // Topics
+  async listTopics(subjectId: string): Promise<Topic[]> {
+    return apiClient.get<Topic[]>(`/admin/topics?subject_id=${encodeURIComponent(subjectId)}`);
+  },
+
+  async createTopic(data: { subject_id: string; name_si: string }): Promise<Topic> {
+    return apiClient.post<Topic>('/admin/topics', data);
+  },
+
+  async deleteTopic(id: number): Promise<void> {
+    await apiClient.delete(`/admin/topics/${id}`);
   },
 
   // Subjects

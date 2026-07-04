@@ -182,12 +182,24 @@ func (s *Scheduler) dailyMCQRankingJob() {
 // Mirrors cron.service.js:startMarkingSchemeJob (30 18 * * *).
 func (s *Scheduler) markingSchemeJob() {
 	ctx := context.Background()
+	// Release marking schemes only once a paper's availability window has closed.
+	// Comparing against the window end (available_until, or available_from + 24h
+	// for daily papers that lack an explicit end) is timezone-safe, unlike date
+	// arithmetic on available_from, which previously released a daily paper at the
+	// instant it OPENED (available_from == midnight SLST of the exam day).
 	rows, err := s.pool.Query(ctx,
 		`UPDATE papers
 		 SET ms_available = TRUE, ms_available_at = NOW()
 		 WHERE ms_available = FALSE
-		   AND available_from::date = (NOW() AT TIME ZONE 'Asia/Colombo')::date - INTERVAL '1 day'
 		   AND is_published = TRUE
+		   AND (
+		     (type = 'daily'
+		      AND COALESCE(available_until, available_from + INTERVAL '1 day') < NOW())
+		     OR
+		     (type = 'srp'
+		      AND available_until IS NOT NULL
+		      AND available_until < NOW())
+		   )
 		 RETURNING id`,
 	)
 	if err != nil {

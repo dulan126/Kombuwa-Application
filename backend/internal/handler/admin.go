@@ -39,7 +39,9 @@ func (h *AdminHandler) Routes() chi.Router {
 		r.Patch("/papers/{id}/publish", h.publishPaper)
 		r.Post("/papers/{id}/trigger-rankings", h.triggerRankings)
 		r.Get("/users", h.listUsers)
+		r.Get("/topics", h.listTopics)
 		r.Post("/topics", h.createTopic)
+		r.Delete("/topics/{id}", h.deleteTopic)
 		// Permission management
 		r.Get("/permissions", h.listPermissions)
 		r.Get("/roles/{role}/permissions", h.getRolePermissions)
@@ -62,6 +64,7 @@ func (h *AdminHandler) Routes() chi.Router {
 
 	// Paper CRUD — permission-gated
 	r.With(h.authMW.RequirePermission(h.svc, "papers:create")).Post("/papers", h.createDraftPaper)
+	r.With(h.authMW.RequirePermission(h.svc, "papers:edit")).Get("/papers/{id}", h.getPaper)
 	r.With(h.authMW.RequirePermission(h.svc, "papers:edit")).Patch("/papers/{id}", h.updatePaper)
 	r.With(h.authMW.RequirePermission(h.svc, "papers:delete")).Delete("/papers/{id}", h.deletePaper)
 
@@ -97,16 +100,14 @@ func (h *AdminHandler) stats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) listPapers(w http.ResponseWriter, r *http.Request) {
-	papers, err := h.svc.ListPapers(r.Context())
+	page, limit := parsePagination(r.URL.Query(), 50, 200)
+	result, err := h.svc.ListPapers(r.Context(), page, limit)
 	if err != nil {
 		h.log.Error("admin list papers", zap.Error(err))
 		httputil.Error(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
-	if papers == nil {
-		papers = []repository.AdminPaperRow{}
-	}
-	httputil.JSON(w, http.StatusOK, papers)
+	httputil.JSON(w, http.StatusOK, result)
 }
 
 func (h *AdminHandler) publishPaper(w http.ResponseWriter, r *http.Request) {
@@ -147,21 +148,19 @@ func (h *AdminHandler) triggerRankings(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) listUsers(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	page, _ := strconv.Atoi(q.Get("page"))
-	users, err := h.svc.ListUsers(r.Context(), repository.AdminUserFilter{
+	page, limit := parsePagination(q, 50, 200)
+	result, err := h.svc.ListUsers(r.Context(), repository.AdminUserFilter{
 		Stream: q.Get("stream"),
 		Grade:  q.Get("grade"),
 		Page:   page,
+		Limit:  limit,
 	})
 	if err != nil {
 		h.log.Error("admin list users", zap.Error(err))
 		httputil.Error(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
-	if users == nil {
-		users = []repository.AdminUserRow{}
-	}
-	httputil.JSON(w, http.StatusOK, users)
+	httputil.JSON(w, http.StatusOK, result)
 }
 
 func (h *AdminHandler) listSubjects(w http.ResponseWriter, r *http.Request) {
@@ -272,6 +271,19 @@ func (h *AdminHandler) deleteSubject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *AdminHandler) listTopics(w http.ResponseWriter, r *http.Request) {
+	subjectID := r.URL.Query().Get("subject_id")
+	topics, err := h.svc.ListTopics(r.Context(), subjectID)
+	if err != nil {
+		httputil.HandleError(w, err)
+		return
+	}
+	if topics == nil {
+		topics = []model.Topic{}
+	}
+	httputil.JSON(w, http.StatusOK, topics)
+}
+
 func (h *AdminHandler) createTopic(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		SubjectID string `json:"subject_id"`
@@ -286,7 +298,22 @@ func (h *AdminHandler) createTopic(w http.ResponseWriter, r *http.Request) {
 		httputil.HandleError(w, err)
 		return
 	}
-	httputil.JSON(w, http.StatusCreated, map[string]any{"id": id})
+	httputil.JSON(w, http.StatusCreated, model.Topic{
+		ID: id, SubjectID: body.SubjectID, NameSi: body.NameSi, SortOrder: 0,
+	})
+}
+
+func (h *AdminHandler) deleteTopic(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "Invalid topic ID")
+		return
+	}
+	if err := h.svc.DeleteTopic(r.Context(), int32(id)); err != nil {
+		httputil.HandleError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ── Paper CRUD ────────────────────────────────────────────────────────────────
@@ -305,6 +332,20 @@ func (h *AdminHandler) createDraftPaper(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	httputil.JSON(w, http.StatusCreated, map[string]any{"id": id})
+}
+
+// GET /admin/papers/{id}
+func (h *AdminHandler) getPaper(w http.ResponseWriter, r *http.Request) {
+	paperID, ok := parseUUID(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+	paper, err := h.svc.GetPaper(r.Context(), paperID)
+	if err != nil {
+		httputil.HandleError(w, err)
+		return
+	}
+	httputil.JSON(w, http.StatusOK, paper)
 }
 
 // PATCH /admin/papers/{id}

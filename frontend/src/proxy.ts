@@ -4,8 +4,7 @@ import type { NextRequest } from 'next/server';
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const token = request.cookies.get('token')?.value;
-  const isDemo = request.cookies.get('kw_demo')?.value === 'true';
-  const isAuthenticated = !!token || isDemo;
+  const isAuthenticated = !!token;
 
   // 1. For backend API proxying through Next.js rewrites:
   // Inject the Authorization header if the HTTP-only cookie exists.

@@ -31,9 +31,11 @@ func NewStudentHandler(
 }
 
 // StreamRoutes returns routes mounted at /api/v1/streams.
+// These are public, read-only reference data (the A/L streams and their
+// subjects): the registration flow needs them before a user has a token.
+// Stream mutations live under /api/v1/admin/streams with proper auth.
 func (h *StudentHandler) StreamRoutes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(h.authMW.Authenticate)
 	r.Get("/", h.listStreams)
 	r.Get("/{id}/subjects", h.listStreamSubjects)
 	return r

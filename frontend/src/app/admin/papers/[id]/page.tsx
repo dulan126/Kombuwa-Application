@@ -11,8 +11,10 @@ import {
   type PoolQuestion,
   type PoolQuestionInput,
   type Subject,
+  type Topic,
 } from '@/services/admin.service';
 import { isApiError } from '@/services/api-client';
+import { AdminDialog, type DialogState } from '@/components/ui/AdminDialog';
 
 // ── Question form (shared for create / edit) ──────────────────────────────────
 
@@ -35,7 +37,13 @@ function QuestionForm({
   subjects: Subject[];
 }) {
   const [q, setQ] = useState<PoolQuestionInput>(initial);
+  const [availableTopics, setAvailableTopics] = useState<Topic[]>([]);
   const set = (k: keyof PoolQuestionInput, v: string) => setQ(prev => ({ ...prev, [k]: v }));
+
+  useEffect(() => {
+    if (!q.subject_id) { setAvailableTopics([]); setQ(prev => ({ ...prev, topic_id: null })); return; }
+    adminService.listTopics(q.subject_id).then(setAvailableTopics).catch(() => setAvailableTopics([]));
+  }, [q.subject_id]);
 
   return (
     <div className="bg-dark rounded-sm p-4 flex flex-col gap-3 text-[12.5px]">
@@ -64,12 +72,28 @@ function QuestionForm({
         </select>
       </div>
       <input className="admin-input" placeholder="Explanation (optional)" value={q.explanation} onChange={e => set('explanation', e.target.value)} />
-      <select className="admin-input" value={q.subject_id ?? ''} onChange={e => set('subject_id', e.target.value)}>
+      <select
+        className="admin-input"
+        value={q.subject_id ?? ''}
+        onChange={e => { set('subject_id', e.target.value); setQ(prev => ({ ...prev, topic_id: null })); }}
+      >
         <option value="">— subject (optional) —</option>
         {subjects.map(s => (
           <option key={s.id} value={s.id}>{s.name_si} ({s.id})</option>
         ))}
       </select>
+      {availableTopics.length > 0 && (
+        <select
+          className="admin-input"
+          value={q.topic_id ?? ''}
+          onChange={e => setQ(prev => ({ ...prev, topic_id: e.target.value ? Number(e.target.value) : null }))}
+        >
+          <option value="">— topic (optional) —</option>
+          {availableTopics.map(t => (
+            <option key={t.id} value={t.id}>{t.name_si}</option>
+          ))}
+        </select>
+      )}
       <input className="admin-input" placeholder="Slug (auto-generated if blank)" value={q.slug} onChange={e => set('slug', e.target.value)} />
       <div className="flex gap-2 pt-1">
         <button
@@ -187,15 +211,16 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
   const [savingNew, setSavingNew] = useState(false);
   const [detachingId, setDetachingId] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [dialog, setDialog] = useState<DialogState | null>(null);
 
   useEffect(() => {
     adminService.listSubjects().then(setSubjects).catch(() => {});
   }, []);
 
   useEffect(() => {
-    Promise.all([adminService.listPapers(), adminService.listPaperQuestions(paperId)])
-      .then(([papers, qs]) => {
-        setPaper(papers.find(p => p.id === paperId) ?? null);
+    Promise.all([adminService.getPaper(paperId), adminService.listPaperQuestions(paperId)])
+      .then(([paper, qs]) => {
+        setPaper(paper);
         setQuestions(qs);
       })
       .catch(() => setError('Failed to load paper'))
@@ -208,7 +233,7 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
       setQuestions(prev => [...prev, pq]);
       setAddMode(null);
     } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to attach question');
+      setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to attach question' });
     }
   }
 
@@ -219,23 +244,30 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
       setQuestions(prev => [...prev, pq]);
       setAddMode(null);
     } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to create question');
+      setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to create question' });
     } finally {
       setSavingNew(false);
     }
   }
 
-  async function handleDetach(q: PaperQuestion) {
-    if (!confirm('Remove this question from the paper?')) return;
-    setDetachingId(q.id);
-    try {
-      await adminService.detachQuestion(paperId, q.id);
-      setQuestions(prev => prev.filter(p => p.id !== q.id));
-    } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to detach');
-    } finally {
-      setDetachingId(null);
-    }
+  function handleDetach(q: PaperQuestion) {
+    setDialog({
+      type: 'confirm',
+      title: 'Remove Question',
+      message: 'Remove this question from the paper?',
+      confirmLabel: 'Remove',
+      onConfirm: async () => {
+        setDetachingId(q.id);
+        try {
+          await adminService.detachQuestion(paperId, q.id);
+          setQuestions(prev => prev.filter(p => p.id !== q.id));
+        } catch (err) {
+          setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to detach' });
+        } finally {
+          setDetachingId(null);
+        }
+      },
+    });
   }
 
   async function handleTogglePublish() {
@@ -244,7 +276,7 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
       await adminService.publishPaper(paper.id, !paper.is_published);
       setPaper(p => p ? { ...p, is_published: !p.is_published } : p);
     } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to update paper');
+      setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to update paper' });
     }
   }
 
@@ -369,6 +401,7 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
           onClose={() => setAddMode(null)}
         />
       )}
+      {dialog && <AdminDialog {...dialog} onClose={() => setDialog(null)} />}
     </div>
   );
 }

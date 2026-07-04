@@ -5,15 +5,17 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
 import { useTimer } from '@/hooks/useTimer';
+import { useExamGuard } from '@/hooks/useExamGuard';
 import { papersService } from '@/services/papers.service';
 import { Modal } from '@/components/ui/Modal';
-import { generateDemoPapers } from '@/lib/demo-data';
-import { isApiError, isNetworkError } from '@/services/api-client';
+import { isApiError } from '@/services/api-client';
 import { cn } from '@/lib/utils';
-import type { Question, AnswerOption, SubmitResult, Paper } from '@/types';
-import type { Stream } from '@/types/auth';
+import type { Question, AnswerOption, SubmitResult, Paper, ExamOverviewResponse } from '@/types';
 
-const TOTAL_SECONDS: Record<string, number> = { daily: 600, srp: 1800 };
+const LEAVE_WARNING =
+  'Leave the exam? Your attempt has already started and the timer keeps running while you are away.';
+
+const TOTAL_SECONDS: Record<string, number> = { daily: 1200, srp: 7200 };
 const OPTIONS = ['A', 'B', 'C', 'D'] as const;
 type OptionKey = (typeof OPTIONS)[number];
 const OPTION_FIELDS: Record<OptionKey, keyof Question> = {
@@ -45,6 +47,79 @@ function DailyWindowCountdown() {
   return <span className="font-mono font-bold text-white">{display}</span>;
 }
 
+// ── SRP upcoming lobby (paper exists but window hasn't opened) ────────────────
+
+function SRPUpcomingCard({ paper, onBack }: { paper: Paper; onBack: () => void }) {
+  const [countdown, setCountdown] = useState('');
+
+  useEffect(() => {
+    function update() {
+      if (!paper.available_from) { setCountdown('—'); return; }
+      const ms = Math.max(0, new Date(paper.available_from).getTime() - Date.now());
+      const s = Math.floor(ms / 1000);
+      const days = Math.floor(s / 86400);
+      const h = Math.floor((s % 86400) / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      const hms = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      setCountdown(days >= 1 ? `${days}d ${hms}` : hms);
+    }
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [paper.available_from]);
+
+  const startDate = paper.available_from
+    ? new Date(paper.available_from).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+    : '—';
+  const mins = Math.round(paper.time_seconds / 60);
+
+  return (
+    <div className="flex items-center justify-center min-h-[70vh]">
+      <div className="w-full max-w-105">
+        <div
+          className="rounded-lg p-8 text-center"
+          style={{ background: 'linear-gradient(115deg, #6f73d6, #8b90f0 60%, #6cd4da)' }}
+        >
+          <div className="text-[3rem] mb-3">⭐</div>
+          <div
+            className="text-white font-bold text-[1.35rem] leading-snug mb-1"
+            style={{ fontFamily: 'var(--font-space-grotesk)' }}
+          >
+            Get Ready — Special Ranking Paper
+          </div>
+          <div className="text-white/75 text-[12.5px] mb-5">
+            {paper.question_count} Questions · {mins} Minutes · Island-wide Ranking
+          </div>
+
+          <div className="bg-white/15 rounded-xl p-5 mb-5">
+            <div className="text-white/70 text-[11px] uppercase tracking-widest mb-2">
+              Starts {startDate}
+            </div>
+            <div
+              className="text-[2.8rem] font-bold text-white leading-none font-mono"
+              style={{ fontFamily: 'var(--font-space-grotesk)' }}
+            >
+              {countdown || '—'}
+            </div>
+          </div>
+
+          <div className="text-white/60 text-[12px]">
+            Available Saturday 00:00 → Sunday 23:59 SLST
+          </div>
+        </div>
+
+        <button
+          onClick={onBack}
+          className="w-full mt-3 py-2 text-[12px] text-text-muted hover:text-text-primary transition-colors bg-transparent border-none cursor-pointer font-[inherit]"
+        >
+          ← Back to Overview
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Exam Content ──────────────────────────────────────────────────────────────
 
 function ExamContent() {
@@ -60,24 +135,27 @@ function ExamContent() {
   const isSRP = paperType === 'srp';
 
   const [paperId, setPaperId] = useState<string | null>(urlPaperId);
+  const [examPaper, setExamPaper] = useState<ExamOverviewResponse['paper'] | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, OptionKey>>({});
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [locked, setLocked] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showTimeUp, setShowTimeUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [isDemo, setIsDemo] = useState(false);
   const [alreadyAttempted, setAlreadyAttempted] = useState<Paper | null>(null);
+  const [upcomingPaper, setUpcomingPaper] = useState<Paper | null>(null);
 
   const timer = useTimer({
     initialSeconds: totalSecs,
     onExpire: () => setShowTimeUp(true),
     autoStart: false,
   });
+  const [paperTotalSecs, setPaperTotalSecs] = useState(totalSecs);
 
   useEffect(() => {
     if (!isLoggedIn) router.push('/login');
@@ -94,63 +172,79 @@ function ExamContent() {
       if (!resolvedId) {
         try {
           const list = await papersService.getPapers({ type: paperType, subject: subjectId, grade: user?.grade });
-          const undone = list.find((p) => !p.done);
+          const nowMs = Date.now();
 
-          if (!undone) {
-            // No available paper — check if already attempted
-            const done = list.find((p) => p.done === true);
-            if (done) {
-              setAlreadyAttempted(done);
-              setLoading(false);
-              return;
-            }
-            // No papers at all — fall through to demo
+          // Live: started and window still open (or no window set)
+          const live = list.find((p) => !p.done &&
+            (p.available_from == null || new Date(p.available_from).getTime() <= nowMs) &&
+            (p.available_until == null || new Date(p.available_until).getTime() > nowMs));
+
+          // Upcoming: window hasn't opened yet — soonest first
+          const upcoming = [...list]
+            .filter((p) => !p.done && p.available_from != null && new Date(p.available_from).getTime() > nowMs)
+            .sort((a, b) => new Date(a.available_from!).getTime() - new Date(b.available_from!).getTime())[0] ?? null;
+
+          const done = list.find((p) => p.done === true);
+
+          if (live) {
+            resolvedId = live.id;
+          } else if (upcoming) {
+            setUpcomingPaper(upcoming);
+            setLoading(false);
+            return;
+          } else if (done) {
+            setAlreadyAttempted(done);
+            setLoading(false);
+            return;
           } else {
-            resolvedId = undone.id;
+            setLoading(false);
+            return;
           }
         } catch {
-          // fall through to demo on network error
-        }
-      }
-
-      if (resolvedId) {
-        try {
-          const data = await papersService.getPaperQuestions(resolvedId);
-          setPaperId(data.paper.id);
-          setQuestions(data.questions);
-          timer.reset(data.paper.time_seconds);
+          showToast('Failed to load papers', 'error');
           setLoading(false);
           return;
-        } catch (err: unknown) {
-          if (isApiError(err) && err.status === 403) {
-            showToast((err as { message?: string }).message ?? 'Daily MCQ window is closed', 'warning');
-            router.push(`/subject/${subjectId}`);
-            return;
-          }
-          if (!isNetworkError(err)) {
-            showToast('Failed to load exam paper', 'error');
-            router.push(`/subject/${subjectId}`);
-            return;
-          }
         }
       }
 
-      // Demo fallback — only reached when API is completely unreachable
-      const stream = (user?.stream ?? 'phy') as Stream;
-      const grade = parseInt(user?.grade ?? '12') as 12 | 13;
-      const map = generateDemoPapers();
-      const bucket = map[stream]?.[grade]?.[subjectId];
-      if (bucket) {
-        const papers = isSRP ? bucket.srp : bucket.daily;
-        const paper = papers[0];
-        if (paper) {
-          setPaperId(paper.id);
-          setQuestions(paper._qs);
+      try {
+        // Pre-start: fetch ONLY the overview (no questions, no answers).
+        const overview = await papersService.getExamOverview(resolvedId);
+        setPaperId(overview.paper.id);
+        setExamPaper(overview.paper);
+        setPaperTotalSecs(overview.paper.time_seconds);
+
+        if (overview.status === 'submitted') {
+          showToast('You have already completed this paper', 'info');
+          router.push(`/subject/${subjectId}`);
+          return;
         }
+        if (overview.status === 'in_progress' || overview.status === 'expired') {
+          // in_progress → resume on the same server clock.
+          // expired → start() finalises the attempt server-side (auto-submit,
+          //           score 0) and responds 403, handled by the catch below.
+          const data = await papersService.startExam(overview.paper.id);
+          setQuestions(data.questions ?? []);
+          timer.reset(data.remaining_seconds);
+          setStarted(true);
+          timer.start();
+          setLoading(false);
+          return;
+        }
+
+        // not_started → show the lobby; questions are fetched only on "Start".
+        setLoading(false);
+      } catch (err: unknown) {
+        if (isApiError(err) && err.status === 403) {
+          showToast(
+            (err as { message?: string }).message ?? (isSRP ? 'SRP paper is not available' : 'Daily MCQ window is closed'),
+            'warning',
+          );
+        } else {
+          showToast('Failed to load exam paper', 'error');
+        }
+        router.push(`/subject/${subjectId}`);
       }
-      setIsDemo(true);
-      timer.reset(totalSecs);
-      setLoading(false);
     }
 
     load();
@@ -172,36 +266,54 @@ function ExamContent() {
       letterAnswers[k] = v as AnswerOption;
     });
 
-    if (paperId && !isDemo) {
-      try {
-        const res = await papersService.submitPaper(paperId, { answers: letterAnswers });
-        setResult(res);
-        setSubmitting(false);
-        return;
-      } catch (err: unknown) {
-        if (isApiError(err) && err.status === 409) {
-          showToast('Already submitted', 'warning');
-          router.push(`/subject/${subjectId}`);
-          return;
-        }
-      }
+    if (!paperId) {
+      setSubmitting(false);
+      return;
     }
 
-    // Local scoring (demo fallback only)
-    let sc = 0;
-    questions.forEach((q, i) => {
-      if (answers[i] === (q.correct_option as OptionKey)) sc++;
-    });
-    setResult({
-      score: sc,
-      total: totalCount,
-      percentage: Math.round((sc / Math.max(totalCount, 1)) * 100),
-      timeTakenSecs: totalSecs - timer.timeLeft,
-      rank: null,
-      demoMode: true,
-    });
-    setSubmitting(false);
-  }, [answers, paperId, isDemo, questions, totalCount, totalSecs, timer, router, subjectId, showToast]);
+    try {
+      const res = await papersService.submitPaper(paperId, { answers: letterAnswers });
+      setResult(res);
+      setSubmitting(false);
+    } catch (err: unknown) {
+      if (isApiError(err) && err.status === 409) {
+        showToast('Already submitted', 'warning');
+        router.push(`/subject/${subjectId}`);
+        return;
+      }
+      showToast('Failed to submit exam', 'error');
+      setSubmitting(false);
+    }
+  }, [answers, paperId, timer, router, subjectId, showToast]);
+
+  // Start consumes the single attempt server-side and returns the questions.
+  const handleStart = useCallback(async () => {
+    if (!paperId || starting) return;
+    setStarting(true);
+    try {
+      const data = await papersService.startExam(paperId);
+      setQuestions(data.questions ?? []);
+      setPaperTotalSecs(data.paper.time_seconds);
+      timer.reset(data.remaining_seconds);
+      setStarted(true);
+      timer.start();
+    } catch (err: unknown) {
+      if (isApiError(err) && err.status === 403) {
+        showToast(
+          (err as { message?: string }).message ?? 'This exam is no longer available',
+          'warning',
+        );
+        router.push(`/subject/${subjectId}`);
+        return;
+      }
+      showToast('Failed to start exam', 'error');
+    } finally {
+      setStarting(false);
+    }
+  }, [paperId, starting, timer, router, subjectId, showToast]);
+
+  // Warn on leaving while the attempt is live (not before start, not after submit).
+  useExamGuard(started && !result && !submitting, LEAVE_WARNING);
 
   // ── Already attempted (daily MCQ only once) ──────────────────────────────
 
@@ -222,7 +334,7 @@ function ExamContent() {
               <span className="font-bold text-white">
                 {alreadyAttempted.score ?? '—'}/{alreadyAttempted.question_count}
               </span>{' '}
-              on today&apos;s Daily MCQ
+              on {isSRP ? 'this Special Ranking Paper' : "today's Daily MCQ"}
             </div>
 
             {alreadyAttempted.ms_available ? (
@@ -253,6 +365,12 @@ function ExamContent() {
     );
   }
 
+  // ── SRP upcoming (window not open yet) ──────────────────────────────────
+
+  if (upcomingPaper) {
+    return <SRPUpcomingCard paper={upcomingPaper} onBack={() => router.push(`/subject/${subjectId}`)} />;
+  }
+
   // ── Result view ──────────────────────────────────────────────────────────
 
   if (result) {
@@ -271,7 +389,6 @@ function ExamContent() {
         <div className="bg-white rounded-[18px] border border-border-dim p-7 mb-4 text-center">
           <div className="text-[10.5px] font-bold tracking-[1.5px] uppercase text-text-muted mb-2.5">
             {isSRP ? 'Special Ranking Paper' : 'Daily MCQ'}
-            {result.demoMode ? ' · Demo Mode' : ''}
           </div>
           <div className="text-[3.4rem] font-bold text-gold leading-none" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
             {result.score}/{result.total}
@@ -327,18 +444,35 @@ function ExamContent() {
           >
             🏆 Leaderboard
           </button>
-          {isSRP ? (
-            <button
-              onClick={() => router.push(`/subject/${subjectId}/marking-schemes`)}
-              className="px-5 py-2 rounded-full bg-gold text-white text-[12.5px] font-semibold cursor-pointer border-none hover:bg-gold-dark transition-colors font-[inherit]"
-            >
-              📖 View Answers
-            </button>
-          ) : (
-            <div className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-border-dim text-[12px] text-text-muted bg-white">
-              🔒 Answers available tomorrow at midnight
-            </div>
-          )}
+          {/* Answers are never revealed right after submission — only once the
+              exam window closes and the marking scheme is released (ms_available). */}
+          <div className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-border-dim text-[12px] text-text-muted bg-white">
+            🔒 {isSRP ? 'Answers available after the paper window closes' : 'Answers available tomorrow at midnight'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── No paper found after load ────────────────────────────────────────────
+
+  if (!loading && !paperId && !started && !result) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="text-center">
+          <div className="text-[2.5rem] mb-3">{isSRP ? '⭐' : '📝'}</div>
+          <div className="text-[14px] font-semibold text-text-primary mb-1">
+            No {isSRP ? 'Special Ranking Paper' : 'Daily MCQ'} available
+          </div>
+          <div className="text-[12px] text-text-muted mb-4">
+            {isSRP ? 'Check back on Saturday for the next SRP.' : 'Check back tomorrow for the next daily paper.'}
+          </div>
+          <button
+            onClick={() => router.push(`/subject/${subjectId}`)}
+            className="px-5 py-2 rounded-full border border-border-dim text-[12.5px] font-semibold text-text-primary bg-white cursor-pointer hover:border-gold transition-colors font-[inherit]"
+          >
+            ← Back to Overview
+          </button>
         </div>
       </div>
     );
@@ -350,8 +484,8 @@ function ExamContent() {
     const lobbyBg = isSRP
       ? 'linear-gradient(115deg, #6f73d6, #8b90f0 60%, #6cd4da)'
       : 'linear-gradient(115deg, #8b90f0, #a9adf5)';
-    const mins = Math.round(totalSecs / 60);
-    const staticTimer = `${String(Math.floor(totalSecs / 60)).padStart(2, '0')}:00`;
+    const mins = Math.round(paperTotalSecs / 60);
+    const staticTimer = `${String(Math.floor(paperTotalSecs / 60)).padStart(2, '0')}:00`;
 
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
@@ -365,7 +499,7 @@ function ExamContent() {
               {isSRP ? 'Special Ranking Paper' : 'Daily MCQ'}
             </div>
             <div className="text-white/75 text-[12.5px] mb-5">
-              {questions.length > 0 ? questions.length : isSRP ? 30 : 10} Questions · {mins} Minutes
+              {examPaper?.question_count ?? (isSRP ? 50 : 10)} Questions · {mins} Minutes
               {isSRP && ' · Island-wide Ranking'}
             </div>
 
@@ -387,10 +521,11 @@ function ExamContent() {
             </div>
 
             <button
-              onClick={() => { setStarted(true); timer.start(); }}
-              className="w-full py-3 rounded-full bg-white text-gold font-bold text-[14px] cursor-pointer border-none hover:bg-white/90 transition-colors font-[inherit]"
+              onClick={handleStart}
+              disabled={starting}
+              className="w-full py-3 rounded-full bg-white text-gold font-bold text-[14px] cursor-pointer border-none hover:bg-white/90 transition-colors font-[inherit] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Start Exam →
+              {starting ? 'Starting…' : 'Start Exam →'}
             </button>
           </div>
 
@@ -447,7 +582,7 @@ function ExamContent() {
     ? 'linear-gradient(115deg, #6f73d6, #8b90f0 60%, #6cd4da)'
     : 'linear-gradient(115deg, #8b90f0, #a9adf5)';
 
-  const timerProgress = totalSecs > 0 ? timer.timeLeft / totalSecs : 0;
+  const timerProgress = paperTotalSecs > 0 ? timer.timeLeft / paperTotalSecs : 0;
   const timerCirc = 2 * Math.PI * 22;
 
   return (
@@ -475,7 +610,9 @@ function ExamContent() {
             </div>
             <div className="text-[12px] text-white/80 mt-0.5">
               Q {current + 1} / {questions.length}
-              {isSRP ? ' · 30 min · Island-wide ranking' : ' · 10 min'}
+              {isSRP
+                ? ` · ${Math.round(paperTotalSecs / 60)} min · Island-wide ranking`
+                : ` · ${Math.round(paperTotalSecs / 60)} min`}
             </div>
           </div>
         </div>
@@ -666,7 +803,16 @@ function ExamContent() {
   );
 }
 
-// Suspense wrapper required for useSearchParams
+// Forces ExamContent to fully remount when type or subject changes,
+// preventing stale state (timer, paperTotalSecs, questions) from leaking
+// across navigation between Daily MCQ and Special Paper.
+function ExamContentKeyed() {
+  const { subjectId } = useParams<{ subjectId: string }>();
+  const searchParams = useSearchParams();
+  const type = searchParams.get('type') ?? 'daily';
+  return <ExamContent key={`${subjectId}-${type}`} />;
+}
+
 export default function ExamPage() {
   return (
     <Suspense fallback={
@@ -674,7 +820,7 @@ export default function ExamPage() {
         Loading...
       </div>
     }>
-      <ExamContent />
+      <ExamContentKeyed />
     </Suspense>
   );
 }

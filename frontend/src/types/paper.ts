@@ -45,6 +45,30 @@ export interface ExamPaperResponse {
   questions: Question[];
 }
 
+/** Server-side attempt state machine (mirrors the Go ExamStatus). */
+export type AttemptStatus = 'not_started' | 'in_progress' | 'submitted' | 'expired';
+
+type ExamPaperSummary = Pick<
+  Paper,
+  'id' | 'type' | 'title' | 'subject_id' | 'subject_name' | 'grade' | 'time_seconds' | 'question_count' | 'available_from' | 'available_until'
+>;
+
+/** Pre-start lobby payload — deliberately carries NO questions and NO answers. */
+export interface ExamOverviewResponse {
+  paper: ExamPaperSummary;
+  status: AttemptStatus;
+  remaining_seconds: number;
+}
+
+/** Returned only after a server-validated start. Questions never include answers. */
+export interface ExamStartResponse {
+  paper: ExamPaperSummary;
+  questions: Question[];
+  status: AttemptStatus;
+  remaining_seconds: number;
+  started_at: string;
+}
+
 export interface SubmitAnswersRequest {
   answers: Record<string, AnswerOption>;
 }
@@ -55,7 +79,6 @@ export interface SubmitResult {
   percentage: number;
   timeTakenSecs: number;
   rank: RankInfo | null;
-  demoMode?: boolean;
 }
 
 export interface RankInfo {

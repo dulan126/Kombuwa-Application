@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { STREAMS } from '@/lib/constants';
@@ -23,16 +23,10 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const { user, isLoggedIn, isDemoMode, logout, demoLogin } = useAuth();
+  const { user, isLoggedIn, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const router = useRouter();
   const stream = user?.stream ? STREAMS[user.stream] : null;
-
-  const handleDemoLogin = async () => {
-    await demoLogin('Demo Student', 'phy', '12', 'Colombo');
-    router.push('/dashboard');
-  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-[100] glass border-b border-gold-border flex items-center px-6 h-[58px] gap-0">
@@ -70,7 +64,6 @@ export function Navbar() {
         {isLoggedIn && stream && (
           <span className="text-[11px] text-text-muted bg-surface border border-border-dim px-3 py-1 rounded-full whitespace-nowrap">
             {stream.icon} {user?.grade}ශ්‍රේ · {stream.name}
-            {isDemoMode && ' · Demo'}
           </span>
         )}
         {isLoggedIn ? (
@@ -78,14 +71,9 @@ export function Navbar() {
             Logout
           </Button>
         ) : (
-          <div className="flex gap-2">
-            <Link href="/register">
-              <Button variant="primary" size="sm">ලියාපදිංචිය</Button>
-            </Link>
-            <Button variant="outline" size="sm" onClick={handleDemoLogin}>
-              Demo
-            </Button>
-          </div>
+          <Link href="/register">
+            <Button variant="primary" size="sm">ලියාපදිංචිය</Button>
+          </Link>
         )}
 
         {/* Mobile Menu Toggle */}

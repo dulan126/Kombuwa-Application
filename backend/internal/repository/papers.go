@@ -47,7 +47,12 @@ func (r *PapersRepo) ListPapers(ctx context.Context, userID uuid.UUID, f PaperLi
 	now := time.Now()
 
 	params := []any{now, userID}
-	wheres := []string{"p.is_published = TRUE", "p.available_from <= $1"}
+	wheres := []string{
+		"p.is_published = TRUE",
+		// Always include papers that have already started; also include upcoming SRP
+		// papers so the frontend can show a countdown before the window opens.
+		"(p.available_from <= $1 OR (p.type = 'srp' AND p.available_from > $1))",
+	}
 
 	if f.Type != "" {
 		params = append(params, f.Type)

@@ -6,14 +6,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { papersService } from '@/services/papers.service';
 import { rankingsService } from '@/services/rankings.service';
 import { DISTRICTS } from '@/lib/constants';
+import { Pagination } from '@/components/ui/Pagination';
 import type { LeaderboardEntry, MyRank } from '@/types';
 
 const PODIUM_ICONS = ['🥇', '🥈', '🥉'];
+const LIMIT = 50;
 
 export default function LeaderboardPage() {
   const { subjectId } = useParams<{ subjectId: string }>();
   const { user } = useAuth();
   const [district, setDistrict] = useState('');
+  const [page, setPage] = useState(1);
   const [rows, setRows] = useState<LeaderboardEntry[]>([]);
   const [myRank, setMyRank] = useState<MyRank | null>(null);
   const [total, setTotal] = useState<number | null>(null);
@@ -32,8 +35,8 @@ export default function LeaderboardPage() {
         setPaperId(latest.id);
         const res = await rankingsService.getRankings(latest.id, {
           district: district || undefined,
-          page: 1,
-          limit: 50,
+          page,
+          limit: LIMIT,
         });
         if (cancelled) return;
         setRows(res.rows ?? []);
@@ -47,7 +50,7 @@ export default function LeaderboardPage() {
     }
     load();
     return () => { cancelled = true; };
-  }, [user, subjectId, district]);
+  }, [user, subjectId, district, page]);
 
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
@@ -67,7 +70,7 @@ export default function LeaderboardPage() {
 
         <select
           value={district}
-          onChange={(e) => setDistrict(e.target.value)}
+          onChange={(e) => { setDistrict(e.target.value); setPage(1); }}
           className="px-3 py-1.5 rounded-full border border-border-dim text-[12px] text-text-primary bg-white outline-none focus:border-gold cursor-pointer"
         >
           <option value="">All Districts</option>
@@ -197,6 +200,11 @@ export default function LeaderboardPage() {
                 </div>
               );
             })}
+            <Pagination
+              page={page}
+              totalPages={Math.ceil((total ?? 0) / LIMIT)}
+              onPage={setPage}
+            />
           </div>
         </>
       )}

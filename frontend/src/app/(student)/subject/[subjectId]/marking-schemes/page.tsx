@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { papersService } from '@/services/papers.service';
+import { Pagination } from '@/components/ui/Pagination';
 import { cn } from '@/lib/utils';
 import type { Paper, Question, AnswerOption } from '@/types';
 
@@ -82,9 +83,10 @@ function MSCard({ paper }: { paper: Paper }) {
     setLoadingScheme(true);
     try {
       const res = await papersService.getMarkingScheme(paper.id);
-      setQuestions(res.questions);
+      const qs = res.questions ?? [];
+      setQuestions(qs);
       const sa: Record<number, AnswerOption | null> = {};
-      res.questions.forEach((q, i) => { sa[i] = q.studentAnswer ?? null; });
+      qs.forEach((q, i) => { sa[i] = q.studentAnswer ?? null; });
       setStudentAnswers(sa);
     } catch {
       // leave empty
@@ -121,7 +123,7 @@ function MSCard({ paper }: { paper: Paper }) {
         <div>
           <div className="text-[12.5px] font-bold text-text-primary leading-snug">{paper.title}</div>
           <div className="text-[11px] text-text-muted mt-0.5">
-            {isSRP ? 'SRP · 30 Questions' : 'Daily · 10 Questions'} · {paper.question_count} marks
+            {isSRP ? 'SRP' : 'Daily'} · {paper.question_count} Questions · {paper.question_count} marks
           </div>
           {paper.score != null && (
             <div className="text-[11px] text-success font-semibold mt-1">
@@ -161,11 +163,15 @@ function MSCard({ paper }: { paper: Paper }) {
   );
 }
 
+const PAGE_SIZE = 12;
+
 export default function MarkingSchemesPage() {
   const { subjectId } = useParams<{ subjectId: string }>();
   const { user } = useAuth();
   const [papers, setPapers] = useState<Paper[]>([]);
-  const [filter, setFilter] = useState<'all' | 'available' | 'pending'>('all');
+  const [availFilter, setAvailFilter] = useState<'all' | 'available' | 'pending'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'daily' | 'srp'>('all');
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -186,9 +192,17 @@ export default function MarkingSchemesPage() {
     return () => { cancelled = true; };
   }, [user, subjectId]);
 
-  const filtered = papers.filter((p) =>
-    filter === 'all' ? true : filter === 'available' ? p.ms_available : !p.ms_available,
-  );
+  const filtered = papers.filter((p) => {
+    const matchAvail = availFilter === 'all' ? true : availFilter === 'available' ? p.ms_available : !p.ms_available;
+    const matchType = typeFilter === 'all' ? true : p.type === typeFilter;
+    return matchAvail && matchType;
+  });
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageSlice = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function changeAvailFilter(f: typeof availFilter) { setAvailFilter(f); setPage(1); }
+  function changeTypeFilter(f: typeof typeFilter) { setTypeFilter(f); setPage(1); }
 
   return (
     <div className="max-w-225">
@@ -198,25 +212,43 @@ export default function MarkingSchemesPage() {
             Marking Schemes
           </h1>
           <div className="text-[12px] text-text-muted mt-0.5">
-            Correct answers released after the exam window closes
+            {filtered.length} scheme{filtered.length !== 1 ? 's' : ''} · Correct answers released after the exam window closes
           </div>
         </div>
 
-        <div className="flex gap-1.5">
-          {(['all', 'available', 'pending'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className="px-4 py-1.5 rounded-full text-[12px] font-semibold border cursor-pointer capitalize transition-all font-[inherit]"
-              style={{
-                background: filter === f ? '#8b90f0' : '#fff',
-                color: filter === f ? '#fff' : '#9a9ab0',
-                borderColor: filter === f ? '#8b90f0' : '#ecebf6',
-              }}
-            >
-              {f === 'all' ? 'All' : f === 'available' ? '✓ Available' : '⏳ Pending'}
-            </button>
-          ))}
+        <div className="flex flex-col gap-2 items-end">
+          <div className="flex gap-1.5">
+            {(['all', 'available', 'pending'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => changeAvailFilter(f)}
+                className="px-3 py-1.5 rounded-full text-[12px] font-semibold border cursor-pointer transition-all font-[inherit]"
+                style={{
+                  background: availFilter === f ? '#8b90f0' : '#fff',
+                  color: availFilter === f ? '#fff' : '#9a9ab0',
+                  borderColor: availFilter === f ? '#8b90f0' : '#ecebf6',
+                }}
+              >
+                {f === 'all' ? 'All' : f === 'available' ? '✓ Available' : '⏳ Pending'}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1.5">
+            {(['all', 'daily', 'srp'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => changeTypeFilter(f)}
+                className="px-3 py-1.5 rounded-full text-[11.5px] font-semibold border cursor-pointer transition-all font-[inherit]"
+                style={{
+                  background: typeFilter === f ? '#f2994a' : '#fff',
+                  color: typeFilter === f ? '#fff' : '#9a9ab0',
+                  borderColor: typeFilter === f ? '#f2994a' : '#ecebf6',
+                }}
+              >
+                {f === 'all' ? 'All Types' : f === 'daily' ? 'Daily MCQ' : '⭐ SRP'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -231,9 +263,16 @@ export default function MarkingSchemesPage() {
             : 'No marking schemes match this filter.'}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {filtered.map((p) => <MSCard key={p.id} paper={p} />)}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {pageSlice.map((p) => <MSCard key={p.id} paper={p} />)}
+          </div>
+          {totalPages > 1 && (
+            <div className="mt-4 bg-white rounded-base border border-border-dim overflow-hidden">
+              <Pagination page={page} totalPages={totalPages} onPage={setPage} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

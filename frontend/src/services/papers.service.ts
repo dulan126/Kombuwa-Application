@@ -1,7 +1,8 @@
 import { apiClient } from './api-client';
 import type {
   Paper,
-  ExamPaperResponse,
+  ExamOverviewResponse,
+  ExamStartResponse,
   SubmitAnswersRequest,
   SubmitResult,
   MarkingSchemeResponse,
@@ -34,10 +35,20 @@ export const papersService = {
   },
 
   /**
-   * Get paper questions for exam (no correct answers).
+   * Pre-start lobby data. Returns paper summary + attempt status only —
+   * never questions or answers. Does not consume the attempt.
    */
-  async getPaperQuestions(paperId: string): Promise<ExamPaperResponse> {
-    return apiClient.get<ExamPaperResponse>(`/papers/${paperId}/questions`);
+  async getExamOverview(paperId: string): Promise<ExamOverviewResponse> {
+    return apiClient.get<ExamOverviewResponse>(`/papers/${paperId}/overview`);
+  },
+
+  /**
+   * Server-validated start. Consumes the single attempt (idempotent for an
+   * in-progress attempt) and returns questions without answers, plus the
+   * server-anchored remaining time.
+   */
+  async startExam(paperId: string): Promise<ExamStartResponse> {
+    return apiClient.post<ExamStartResponse>(`/papers/${paperId}/start`, {});
   },
 
   /**

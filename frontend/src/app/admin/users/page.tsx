@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { adminService, type AdminUser } from '@/services/admin.service';
 import { isApiError } from '@/services/api-client';
+import { AdminDialog, type DialogState } from '@/components/ui/AdminDialog';
+import { Pagination } from '@/components/ui/Pagination';
 
 const ROLE_OPTIONS = ['student', 'editor', 'admin'];
 
@@ -22,25 +24,31 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
+const LIMIT = 50;
+
 export default function UsersPage() {
   const { user: me } = useAuth();
   const canManage = me?.role === 'admin';
 
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<DialogState | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await adminService.listUsers();
-      setUsers(data);
+      const data = await adminService.listUsers({ page, limit: LIMIT });
+      setUsers(data.users ?? []);
+      setTotal(data.total ?? 0);
     } catch {
       // ignore
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -51,7 +59,7 @@ export default function UsersPage() {
       await adminService.updateUserRole(u.id, role);
       setUsers(prev => prev.map(x => x.id === u.id ? { ...x, _role: role } as AdminUser & { _role: string } : x));
     } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to update role');
+      setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to update role' });
     } finally {
       setUpdatingId(null);
     }
@@ -67,7 +75,7 @@ export default function UsersPage() {
         prev.map(x => x.id === u.id ? { ...x, is_active: next } as AdminUser & { is_active: boolean } : x)
       );
     } catch (err) {
-      alert(isApiError(err) ? err.message : 'Failed to update status');
+      setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to update status' });
     } finally {
       setUpdatingId(null);
     }
@@ -79,7 +87,7 @@ export default function UsersPage() {
         <h1 className="text-[1.4rem] font-bold text-text-primary" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
           Users
         </h1>
-        <p className="text-text-muted text-[12.5px] mt-0.5">{users.length} students</p>
+        <p className="text-text-muted text-[12.5px] mt-0.5">{total} students</p>
       </div>
 
       <div className="bg-surface rounded-base border border-border-dim overflow-hidden">
@@ -158,7 +166,9 @@ export default function UsersPage() {
             </table>
           </div>
         )}
+        <Pagination page={page} totalPages={Math.ceil(total / LIMIT)} onPage={setPage} />
       </div>
+      {dialog && <AdminDialog {...dialog} onClose={() => setDialog(null)} />}
     </div>
   );
 }
