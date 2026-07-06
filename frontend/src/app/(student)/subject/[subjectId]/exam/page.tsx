@@ -8,6 +8,7 @@ import { useTimer } from '@/hooks/useTimer';
 import { useExamGuard } from '@/hooks/useExamGuard';
 import { papersService } from '@/services/papers.service';
 import { Modal } from '@/components/ui/Modal';
+import { QuestionImage } from '@/components/exam/QuestionImage';
 import { isApiError } from '@/services/api-client';
 import { cn } from '@/lib/utils';
 import type { Question, AnswerOption, SubmitResult, Paper, ExamOverviewResponse } from '@/types';
@@ -16,10 +17,10 @@ const LEAVE_WARNING =
   'Leave the exam? Your attempt has already started and the timer keeps running while you are away.';
 
 const TOTAL_SECONDS: Record<string, number> = { daily: 1200, srp: 7200 };
-const OPTIONS = ['A', 'B', 'C', 'D'] as const;
+const OPTIONS = ['A', 'B', 'C', 'D', 'E'] as const;
 type OptionKey = (typeof OPTIONS)[number];
 const OPTION_FIELDS: Record<OptionKey, keyof Question> = {
-  A: 'option_a', B: 'option_b', C: 'option_c', D: 'option_d',
+  A: 'option_a', B: 'option_b', C: 'option_c', D: 'option_d', E: 'option_e',
 };
 
 // ── SLST countdown (for daily window) ────────────────────────────────────────
@@ -655,11 +656,17 @@ function ExamContent() {
             <div className="text-[10.5px] text-text-muted font-semibold tracking-wide uppercase mb-3">
               Question {current + 1}
             </div>
-            <p className="text-[14px] text-text-primary leading-[1.8] mb-6">{q.question_text}</p>
+            <p className="text-[14px] text-text-primary leading-[1.8] mb-3">{q.question_text}</p>
+            {q.images?.question && (
+              <div className="mb-5">
+                <QuestionImage src={q.images.question} alt={`Question ${current + 1} image`} />
+              </div>
+            )}
 
             <div className="flex flex-col gap-2.5">
               {OPTIONS.map((opt) => {
                 const text = (q[OPTION_FIELDS[opt]] as string) ?? '';
+                const optImg = q.images?.[opt.toLowerCase() as 'a' | 'b' | 'c' | 'd' | 'e'];
                 const isSelected = answers[current] === opt;
                 return (
                   <button
@@ -681,7 +688,10 @@ function ExamContent() {
                     >
                       {opt}
                     </span>
-                    <span className="text-[13px] text-text-primary">{text}</span>
+                    <span className="flex flex-col gap-1.5 min-w-0">
+                      {text && <span className="text-[13px] text-text-primary">{text}</span>}
+                      {optImg && <QuestionImage src={optImg} alt={`Option ${opt} image`} className="max-h-40 max-w-full rounded-[8px] border border-border-dim object-contain" />}
+                    </span>
                   </button>
                 );
               })}

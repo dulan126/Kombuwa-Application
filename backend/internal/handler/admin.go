@@ -60,6 +60,7 @@ func (h *AdminHandler) Routes() chi.Router {
 	// Read-only stream/subject endpoints accessible to admin+editor
 	r.Get("/streams", h.listStreams)
 	r.Get("/subjects", h.listSubjects)
+	r.Get("/subjects/summary", h.subjectSummary)
 	r.Get("/streams/{id}/subjects", h.listStreamSubjects)
 
 	// Paper CRUD — permission-gated
@@ -79,6 +80,15 @@ func (h *AdminHandler) Routes() chi.Router {
 	r.With(h.authMW.RequirePermission(h.svc, "questions:create")).Post("/questions", h.createPoolQuestion)
 	r.With(h.authMW.RequirePermission(h.svc, "questions:edit")).Patch("/questions/{id}", h.updatePoolQuestion)
 	r.With(h.authMW.RequirePermission(h.svc, "questions:delete")).Delete("/questions/{id}", h.deletePoolQuestion)
+
+	// Question/answer images — permission-gated
+	r.With(h.authMW.RequirePermission(h.svc, "questions:create")).Get("/questions/{id}/media/{slot}", h.serveQuestionMedia)
+	r.With(h.authMW.RequirePermission(h.svc, "questions:edit")).Post("/questions/{id}/media/{slot}", h.uploadQuestionMedia)
+	r.With(h.authMW.RequirePermission(h.svc, "questions:edit")).Delete("/questions/{id}/media/{slot}", h.deleteQuestionMedia)
+
+	// Past-paper reference PDFs — permission-gated
+	r.With(h.authMW.RequirePermission(h.svc, "papers:edit")).Post("/papers/{id}/pdf/{slot}", h.uploadPaperPDF)
+	r.With(h.authMW.RequirePermission(h.svc, "papers:edit")).Delete("/papers/{id}/pdf/{slot}", h.deletePaperPDF)
 
 	// User management — permission-gated
 	r.With(h.authMW.RequirePermission(h.svc, "users:manage")).Patch("/users/{id}/role", h.updateUserRole)
@@ -100,14 +110,30 @@ func (h *AdminHandler) stats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) listPapers(w http.ResponseWriter, r *http.Request) {
-	page, limit := parsePagination(r.URL.Query(), 50, 200)
-	result, err := h.svc.ListPapers(r.Context(), page, limit)
+	q := r.URL.Query()
+	page, limit := parsePagination(q, 50, 200)
+	filter := repository.AdminPaperFilter{
+		SubjectID: q.Get("subject_id"),
+		Type:      q.Get("type"),
+	}
+	result, err := h.svc.ListPapers(r.Context(), filter, page, limit)
 	if err != nil {
 		h.log.Error("admin list papers", zap.Error(err))
 		httputil.Error(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
 	httputil.JSON(w, http.StatusOK, result)
+}
+
+// subjectSummary returns per-subject content counts for the admin landing cards.
+func (h *AdminHandler) subjectSummary(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.svc.SubjectSummaries(r.Context())
+	if err != nil {
+		h.log.Error("subject summary", zap.Error(err))
+		httputil.Error(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	httputil.JSON(w, http.StatusOK, rows)
 }
 
 func (h *AdminHandler) publishPaper(w http.ResponseWriter, r *http.Request) {

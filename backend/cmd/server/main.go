@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"context"
@@ -17,8 +17,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	appCron "github.com/miedvance/api/internal/cron"
 	"github.com/miedvance/api/internal/config"
+	appCron "github.com/miedvance/api/internal/cron"
 	"github.com/miedvance/api/internal/db"
 	"github.com/miedvance/api/internal/handler"
 	"github.com/miedvance/api/internal/httputil"
@@ -27,6 +27,7 @@ import (
 	"github.com/miedvance/api/internal/repository"
 	"github.com/miedvance/api/internal/service"
 	"github.com/miedvance/api/internal/sms"
+	"github.com/miedvance/api/internal/storage"
 )
 
 func main() {
@@ -83,15 +84,21 @@ func main() {
 	adminRepo := repository.NewAdminRepo(pool)
 	rbacRepo := repository.NewRBACRepo(pool)
 	poolRepo := repository.NewQuestionPoolRepo(pool)
-	ppRepo := repository.NewPastPapersRepo(pool)
 	forumRepo := repository.NewForumRepo(pool)
+	qMediaRepo := repository.NewQuestionMediaRepo(pool)
+	paperMediaRepo := repository.NewPaperMediaRepo(pool)
+	practiceRepo := repository.NewPracticeRepo(pool)
 
 	// ── Services ──────────────────────────────────────────────────────────
 	smsCli := sms.New(cfg, log)
+	mediaStore, err := storage.NewDiskStorage(cfg.MediaDir)
+	if err != nil {
+		log.Fatal("init media storage", zap.Error(err))
+	}
+	mediaSvc := service.NewMediaService(mediaStore, qMediaRepo, paperMediaRepo, papersRepo, cfg.MaxImageSizeMB, cfg.MaxFileSizeMB)
 	authSvc := service.NewAuthService(authRepo, rdb, smsCli, cfg, log)
-	papersSvc := service.NewPapersService(papersRepo, rdb, log)
-	adminSvc := service.NewAdminService(adminRepo, papersRepo, papersSvc, rbacRepo, poolRepo, rdb, log)
-	ppSvc := service.NewPastPapersService(ppRepo, log)
+	papersSvc := service.NewPapersService(papersRepo, practiceRepo, rdb, mediaSvc, log)
+	adminSvc := service.NewAdminService(adminRepo, papersRepo, papersSvc, rbacRepo, poolRepo, mediaSvc, rdb, log)
 	forumSvc := service.NewForumService(forumRepo, log)
 
 	// ── Cron scheduler ────────────────────────────────────────────────────
@@ -107,7 +114,6 @@ func main() {
 	)
 	papersHandler := handler.NewPapersHandler(papersSvc, auth, log)
 	adminHandler := handler.NewAdminHandler(adminSvc, auth, log)
-	ppHandler := handler.NewPastPapersHandler(ppSvc, auth, cfg, log)
 	forumHandler := handler.NewForumHandler(forumSvc, auth, cfg, log)
 	studentHandler := handler.NewStudentHandler(adminRepo, papersSvc, auth, log)
 
@@ -136,7 +142,6 @@ func main() {
 	r.Mount("/api/v1/auth", authHandler.Routes())
 	r.Mount("/api/v1/papers", papersHandler.Routes())
 	r.Mount("/api/v1/admin", adminHandler.Routes())
-	r.Mount("/api/v1/past-papers", ppHandler.Routes())
 	r.Mount("/api/v1/forum", forumHandler.Routes())
 	r.Mount("/api/v1/streams", studentHandler.StreamRoutes())
 	r.Mount("/api/v1/subjects", studentHandler.SubjectRoutes())

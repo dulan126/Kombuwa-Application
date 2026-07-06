@@ -153,59 +153,9 @@ CREATE TABLE IF NOT EXISTS rankings (
 CREATE INDEX IF NOT EXISTS idx_rankings_paper      ON rankings(paper_id, national_rank);
 CREATE INDEX IF NOT EXISTS idx_rankings_paper_dist ON rankings(paper_id, district, district_rank);
 
--- ═══════════════════════════════════════════════════════════════════
--- PAST PAPERS
--- ═══════════════════════════════════════════════════════════════════
-CREATE TABLE IF NOT EXISTS past_papers (
-  id                       UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  subject_id               VARCHAR(10) NOT NULL REFERENCES subjects(id),
-  topic_id                 INT         NOT NULL REFERENCES topics(id),
-  year                     SMALLINT    NOT NULL,
-  grade                    grade_enum  NOT NULL,
-  mcq_count                SMALLINT    NOT NULL DEFAULT 0,
-  essay_count              SMALLINT    NOT NULL DEFAULT 0,
-  mcq_marks                SMALLINT    NOT NULL DEFAULT 0,
-  essay_marks              SMALLINT    NOT NULL DEFAULT 0,
-  essay_pdf_url            TEXT,
-  essay_pdf_size           INT,
-  marking_scheme_available BOOLEAN     NOT NULL DEFAULT FALSE,
-  ms_mcq_uploaded          BOOLEAN     NOT NULL DEFAULT FALSE,
-  ms_essay_pdf_url         TEXT,
-  ms_essay_pdf_size        INT,
-  uploaded_by              UUID        REFERENCES users(id),
-  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (subject_id, topic_id, year, grade)
-);
-CREATE INDEX IF NOT EXISTS idx_pp_subject_topic ON past_papers(subject_id, topic_id);
-CREATE INDEX IF NOT EXISTS idx_pp_year          ON past_papers(year);
-
--- ═══════════════════════════════════════════════════════════════════
--- PAST PAPER MCQ QUESTIONS
--- ═══════════════════════════════════════════════════════════════════
-CREATE TABLE IF NOT EXISTS pp_questions (
-  id            SERIAL      PRIMARY KEY,
-  past_paper_id UUID        NOT NULL REFERENCES past_papers(id) ON DELETE CASCADE,
-  sort_order    SMALLINT    NOT NULL,
-  question_text TEXT        NOT NULL,
-  option_a      TEXT        NOT NULL,
-  option_b      TEXT        NOT NULL,
-  option_c      TEXT        NOT NULL,
-  option_d      TEXT        NOT NULL,
-  correct_option CHAR(1)    CHECK (correct_option IN ('A','B','C','D')),
-  image_url     TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_pp_questions_paper ON pp_questions(past_paper_id, sort_order);
-
--- ═══════════════════════════════════════════════════════════════════
--- PAST PAPER ESSAY QUESTIONS
--- ═══════════════════════════════════════════════════════════════════
-CREATE TABLE IF NOT EXISTS pp_essays (
-  id            SERIAL      PRIMARY KEY,
-  past_paper_id UUID        NOT NULL REFERENCES past_papers(id) ON DELETE CASCADE,
-  sort_order    SMALLINT    NOT NULL,
-  question_text TEXT        NOT NULL,
-  marks         SMALLINT    NOT NULL DEFAULT 0
-);
+-- Past papers are modelled as papers.type = 'pastpaper' (see the paper engine),
+-- with practice_attempts + paper_media. The legacy past_papers/pp_questions/
+-- pp_essays archive tables were removed — see migrate_drop_legacy_pastpapers.sql.
 
 -- ═══════════════════════════════════════════════════════════════════
 -- Q&A FORUM

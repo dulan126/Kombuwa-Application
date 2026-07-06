@@ -21,6 +21,13 @@ import (
 
 const permCacheTTL = 5 * time.Minute
 
+// Subject card summary cache: read-often, changes only on content writes.
+// Write-triggered invalidation via invalidateSubjectSummary; TTL is a safety net.
+const (
+	subjectSummaryCacheKey = "admin:subject_summary"
+	subjectSummaryTTL      = 5 * time.Minute
+)
+
 // AdminService implements all admin business logic.
 type AdminService struct {
 	repo       *repository.AdminRepo
@@ -28,6 +35,7 @@ type AdminService struct {
 	papersSvc  *PapersService
 	rbacRepo   *repository.RBACRepo
 	poolRepo   *repository.QuestionPoolRepo
+	media      *MediaService
 	rdb        *redis.Client
 	log        *zap.Logger
 }
@@ -39,6 +47,7 @@ func NewAdminService(
 	papersSvc *PapersService,
 	rbacRepo *repository.RBACRepo,
 	poolRepo *repository.QuestionPoolRepo,
+	media *MediaService,
 	rdb *redis.Client,
 	log *zap.Logger,
 ) *AdminService {
@@ -48,10 +57,14 @@ func NewAdminService(
 		papersSvc:  papersSvc,
 		rbacRepo:   rbacRepo,
 		poolRepo:   poolRepo,
+		media:      media,
 		rdb:        rdb,
 		log:        log,
 	}
 }
+
+// Media exposes the media service for handler wiring (upload/remove/serve).
+func (s *AdminService) Media() *MediaService { return s.media }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 
@@ -67,8 +80,8 @@ type PapersPage struct {
 	Total  int                        `json:"total"`
 }
 
-func (s *AdminService) ListPapers(ctx context.Context, page, limit int) (*PapersPage, error) {
-	papers, total, err := s.repo.ListPapers(ctx, page, limit)
+func (s *AdminService) ListPapers(ctx context.Context, f repository.AdminPaperFilter, page, limit int) (*PapersPage, error) {
+	papers, total, err := s.repo.ListPapers(ctx, f, page, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +99,12 @@ func (s *AdminService) GetPaper(ctx context.Context, paperID uuid.UUID) (*reposi
 	if paper == nil {
 		return nil, httputil.E(http.StatusNotFound, "Paper not found")
 	}
+	// Attach reference-PDF URLs for past papers so the builder can show them.
+	if paper.Type == model.PaperPastPaper && s.media != nil {
+		if pdfs, err := s.media.PaperPDFs(ctx, paperID); err == nil {
+			paper.Pdfs = pdfs
+		}
+	}
 	return paper, nil
 }
 
@@ -94,6 +113,7 @@ func (s *AdminService) SetPaperPublished(ctx context.Context, paperID uuid.UUID,
 	if err != nil {
 		return nil, fmt.Errorf("set published: %w", err)
 	}
+	s.invalidateSubjectSummary(ctx)
 	return map[string]any{"id": paperID, "is_published": result}, nil
 }
 
@@ -108,13 +128,27 @@ type CreateDraftPaperInput struct {
 	AvailableUntil *time.Time `json:"available_until"`
 }
 
+// dayConflictMsg is the 409 message for the one-paper-per-type-per-day rule.
+func dayConflictMsg(t model.PaperType) string {
+	label := "Daily MCQ"
+	if t == model.PaperSRP {
+		label = "SRP"
+	}
+	return fmt.Sprintf("A %s paper already exists for this subject on that day", label)
+}
+
 // CreateDraftPaper creates a blank draft paper with no questions.
 func (s *AdminService) CreateDraftPaper(ctx context.Context, createdBy uuid.UUID, in CreateDraftPaperInput) (uuid.UUID, error) {
-	if in.Title == "" || in.SubjectID == "" || in.Grade == "" || in.Type == "" {
-		return uuid.UUID{}, httputil.E(http.StatusBadRequest, "type, subject_id, grade, and title are required")
+	if in.Title == "" || in.SubjectID == "" || in.Type == "" {
+		return uuid.UUID{}, httputil.E(http.StatusBadRequest, "type, subject_id, and title are required")
+	}
+	paperType := model.PaperType(in.Type)
+	// Grade (12/13) is a level; past papers carry none.
+	if paperType != model.PaperPastPaper && in.Grade == "" {
+		return uuid.UUID{}, httputil.E(http.StatusBadRequest, "grade is required")
 	}
 	slst := time.FixedZone("SLST", 5*3600+30*60)
-	switch model.PaperType(in.Type) {
+	switch paperType {
 	case model.PaperSRP:
 		fromSLST := in.AvailableFrom.In(slst)
 		if fromSLST.Weekday() != time.Saturday {
@@ -125,9 +159,28 @@ func (s *AdminService) CreateDraftPaper(ctx context.Context, createdBy uuid.UUID
 			23, 59, 59, 0, slst,
 		).UTC()
 		in.AvailableUntil = &sundayEnd
+	case model.PaperPastPaper:
+		// Past papers have no schedule: always available, no countdown, and no
+		// one-per-day rule. Normalise timing fields.
+		in.AvailableFrom = time.Now()
+		in.AvailableUntil = nil
+		in.TimeSeconds = 0
 	}
-	return s.papersRepo.CreatePaper(ctx, repository.CreatePaperParams{
-		Type:           model.PaperType(in.Type),
+
+	// One paper per type, per subject, per day — daily/SRP only (past papers may
+	// share a day; many can exist per subject).
+	if paperType != model.PaperPastPaper {
+		exists, err := s.papersRepo.PaperExistsOnDay(ctx, in.SubjectID, paperType, in.AvailableFrom, uuid.Nil)
+		if err != nil {
+			return uuid.UUID{}, fmt.Errorf("check existing paper: %w", err)
+		}
+		if exists {
+			return uuid.UUID{}, httputil.E(http.StatusConflict, dayConflictMsg(paperType))
+		}
+	}
+
+	id, err := s.papersRepo.CreatePaper(ctx, repository.CreatePaperParams{
+		Type:           paperType,
 		SubjectID:      in.SubjectID,
 		Grade:          model.Grade(in.Grade),
 		Title:          in.Title,
@@ -137,6 +190,11 @@ func (s *AdminService) CreateDraftPaper(ctx context.Context, createdBy uuid.UUID
 		AvailableUntil: in.AvailableUntil,
 		CreatedBy:      createdBy,
 	}, nil)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	s.invalidateSubjectSummary(ctx)
+	return id, nil
 }
 
 // UpdatePaperInput holds editable paper fields.
@@ -153,6 +211,24 @@ func (s *AdminService) UpdatePaper(ctx context.Context, paperID uuid.UUID, in Up
 	if in.Title == "" || in.SubjectID == "" || in.Grade == "" || in.TimeSeconds <= 0 {
 		return nil, httputil.E(http.StatusBadRequest, "title, subject_id, grade, and time_seconds are required")
 	}
+
+	// Type is immutable on update; fetch it to enforce one-paper-per-day when the
+	// subject or date changes (excluding this paper's own row).
+	existing, err := s.repo.GetPaper(ctx, paperID)
+	if err != nil {
+		return nil, fmt.Errorf("get paper: %w", err)
+	}
+	if existing == nil {
+		return nil, httputil.E(http.StatusNotFound, "Paper not found")
+	}
+	exists, err := s.papersRepo.PaperExistsOnDay(ctx, in.SubjectID, existing.Type, in.AvailableFrom, paperID)
+	if err != nil {
+		return nil, fmt.Errorf("check existing paper: %w", err)
+	}
+	if exists {
+		return nil, httputil.E(http.StatusConflict, dayConflictMsg(existing.Type))
+	}
+
 	paper, err := s.repo.UpdatePaper(ctx, paperID, repository.UpdatePaperParams{
 		Title:          in.Title,
 		SubjectID:      in.SubjectID,
@@ -167,16 +243,27 @@ func (s *AdminService) UpdatePaper(ctx context.Context, paperID uuid.UUID, in Up
 	if paper == nil {
 		return nil, httputil.E(http.StatusNotFound, "Paper not found")
 	}
+	s.invalidateSubjectSummary(ctx)
 	return paper, nil
 }
 
 func (s *AdminService) DeletePaper(ctx context.Context, paperID uuid.UUID) error {
+	// Capture PDF keys before the row (and its cascaded paper_media rows) go away.
+	var pdfKeys []string
+	if s.media != nil {
+		pdfKeys, _ = s.media.KeysForPaper(ctx, paperID)
+	}
+
 	if err := s.repo.DeletePaper(ctx, paperID); err != nil {
 		if err.Error() == "no rows in result set" {
 			return httputil.E(http.StatusNotFound, "Paper not found")
 		}
 		return fmt.Errorf("delete paper: %w", err)
 	}
+	if s.media != nil {
+		s.media.DeleteFiles(pdfKeys)
+	}
+	s.invalidateSubjectSummary(ctx)
 	return nil
 }
 
@@ -236,13 +323,36 @@ type PoolQuestionInput struct {
 	OptionB       string  `json:"option_b"`
 	OptionC       string  `json:"option_c"`
 	OptionD       string  `json:"option_d"`
+	OptionE       string  `json:"option_e"`
 	CorrectOption string  `json:"correct_option"`
 	Explanation   *string `json:"explanation"`
 	ImageURL      *string `json:"image_url"`
+	// IsPp defaults false (pool-authored); set true when authored via the
+	// past-paper builder. Ignored on update (origin is immutable).
+	IsPp bool `json:"is_pp"`
 }
 
 func (s *AdminService) ListPoolQuestions(ctx context.Context, f repository.PoolFilter) ([]model.PoolQuestion, int, error) {
-	return s.poolRepo.ListPoolQuestions(ctx, f)
+	qs, total, err := s.poolRepo.ListPoolQuestions(ctx, f)
+	if err != nil {
+		return nil, 0, err
+	}
+	if s.media != nil && len(qs) > 0 {
+		ids := make([]int, len(qs))
+		for i := range qs {
+			ids[i] = int(qs[i].ID)
+		}
+		imgs, err := s.media.AdminImagesFor(ctx, ids)
+		if err != nil {
+			return nil, 0, err
+		}
+		for i := range qs {
+			if m := imgs[int(qs[i].ID)]; len(m) > 0 {
+				qs[i].Images = m
+			}
+		}
+	}
+	return qs, total, nil
 }
 
 func (s *AdminService) CreatePoolQuestion(ctx context.Context, createdBy uuid.UUID, in PoolQuestionInput) (*model.PoolQuestion, error) {
@@ -276,9 +386,11 @@ func (s *AdminService) CreatePoolQuestion(ctx context.Context, createdBy uuid.UU
 		OptionB:       in.OptionB,
 		OptionC:       in.OptionC,
 		OptionD:       in.OptionD,
+		OptionE:       in.OptionE,
 		CorrectOption: strings.ToUpper(in.CorrectOption),
 		Explanation:   in.Explanation,
 		ImageURL:      in.ImageURL,
+		IsPp:          in.IsPp,
 		CreatedBy:     createdBy,
 	})
 	if err == repository.ErrSlugConflict {
@@ -287,6 +399,7 @@ func (s *AdminService) CreatePoolQuestion(ctx context.Context, createdBy uuid.UU
 	if err != nil {
 		return nil, fmt.Errorf("create pool question: %w", err)
 	}
+	s.invalidateSubjectSummary(ctx)
 	return q, nil
 }
 
@@ -302,6 +415,7 @@ func (s *AdminService) UpdatePoolQuestion(ctx context.Context, id int, in PoolQu
 		OptionB:       in.OptionB,
 		OptionC:       in.OptionC,
 		OptionD:       in.OptionD,
+		OptionE:       in.OptionE,
 		CorrectOption: strings.ToUpper(in.CorrectOption),
 		Explanation:   in.Explanation,
 		ImageURL:      in.ImageURL,
@@ -312,10 +426,19 @@ func (s *AdminService) UpdatePoolQuestion(ctx context.Context, id int, in PoolQu
 	if q == nil {
 		return nil, httputil.E(http.StatusNotFound, "Question not found")
 	}
+	s.invalidateSubjectSummary(ctx)
 	return q, nil
 }
 
 func (s *AdminService) DeletePoolQuestion(ctx context.Context, id int) error {
+	// List image keys BEFORE deleting: the question's media rows cascade away
+	// with it, so we capture the files to remove first and delete them only
+	// after the row delete succeeds.
+	var mediaKeys []string
+	if s.media != nil {
+		mediaKeys, _ = s.media.KeysForQuestion(ctx, id)
+	}
+
 	err := s.poolRepo.DeletePoolQuestion(ctx, id)
 	if err == repository.ErrQuestionInUse {
 		return httputil.E(http.StatusConflict, "Question is attached to one or more papers — detach it first")
@@ -323,6 +446,10 @@ func (s *AdminService) DeletePoolQuestion(ctx context.Context, id int) error {
 	if err != nil {
 		return fmt.Errorf("delete pool question: %w", err)
 	}
+	if s.media != nil {
+		s.media.DeleteFiles(mediaKeys)
+	}
+	s.invalidateSubjectSummary(ctx)
 	return nil
 }
 
@@ -332,12 +459,31 @@ func (s *AdminService) DeletePoolQuestion(ctx context.Context, id int) error {
 // Set QuestionID to attach an existing pool question.
 // Set QuestionID to 0 and fill the question fields to author inline.
 type AttachQuestionInput struct {
-	QuestionID   int                `json:"question_id"`
-	PoolQuestionInput               // embedded for inline authoring
+	QuestionID        int `json:"question_id"`
+	PoolQuestionInput     // embedded for inline authoring
 }
 
 func (s *AdminService) ListPaperQuestions(ctx context.Context, paperID uuid.UUID) ([]model.PaperQuestion, error) {
-	return s.poolRepo.ListPaperQuestions(ctx, paperID)
+	qs, err := s.poolRepo.ListPaperQuestions(ctx, paperID)
+	if err != nil {
+		return nil, err
+	}
+	if s.media != nil && len(qs) > 0 {
+		ids := make([]int, len(qs))
+		for i := range qs {
+			ids[i] = int(qs[i].ID)
+		}
+		imgs, err := s.media.AdminImagesFor(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+		for i := range qs {
+			if m := imgs[int(qs[i].ID)]; len(m) > 0 {
+				qs[i].Images = m
+			}
+		}
+	}
+	return qs, nil
 }
 
 func (s *AdminService) AttachQuestion(ctx context.Context, paperID uuid.UUID, createdBy uuid.UUID, in AttachQuestionInput) (*model.PaperQuestion, error) {
@@ -354,8 +500,15 @@ func (s *AdminService) AttachQuestion(ctx context.Context, paperID uuid.UUID, cr
 			return nil, httputil.E(http.StatusNotFound, "Question not found in pool")
 		}
 	} else {
-		// Create inline — auto-slug from text, then attach
-		newQ, err := s.CreatePoolQuestion(ctx, createdBy, in.PoolQuestionInput)
+		// Create inline — auto-slug from text, then attach. A question authored
+		// from the past-paper builder is flagged is_pp = true (origin-based).
+		// Use the admin repo's GetPaper, which returns drafts too (papers are
+		// still unpublished while being built).
+		inline := in.PoolQuestionInput
+		if paper, err := s.repo.GetPaper(ctx, paperID); err == nil && paper != nil {
+			inline.IsPp = paper.Type == model.PaperPastPaper
+		}
+		newQ, err := s.CreatePoolQuestion(ctx, createdBy, inline)
 		if err != nil {
 			return nil, err
 		}
@@ -478,17 +631,54 @@ func (s *AdminService) ListSubjects(ctx context.Context) ([]repository.SubjectRo
 	return subjects, err
 }
 
+// SubjectSummaries returns per-subject content counts for the admin landing
+// cards, cached in Redis (write-invalidated + TTL safety net).
+func (s *AdminService) SubjectSummaries(ctx context.Context) ([]repository.SubjectSummaryRow, error) {
+	if raw, err := s.rdb.Get(ctx, subjectSummaryCacheKey).Bytes(); err == nil {
+		var cached []repository.SubjectSummaryRow
+		if json.Unmarshal(raw, &cached) == nil {
+			return cached, nil
+		}
+	}
+
+	rows, err := s.repo.SubjectSummaries(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("subject summaries: %w", err)
+	}
+	if rows == nil {
+		rows = []repository.SubjectSummaryRow{}
+	}
+	if data, err := json.Marshal(rows); err == nil {
+		_ = s.rdb.Set(ctx, subjectSummaryCacheKey, data, subjectSummaryTTL).Err()
+	}
+	return rows, nil
+}
+
+// invalidateSubjectSummary drops the cached card counts. Called after any write
+// that changes per-subject paper or question counts so cards never go stale.
+func (s *AdminService) invalidateSubjectSummary(ctx context.Context) {
+	_ = s.rdb.Del(ctx, subjectSummaryCacheKey).Err()
+}
+
 func (s *AdminService) CreateSubject(ctx context.Context, id, nameSi string) error {
 	if id == "" || nameSi == "" {
 		return httputil.E(http.StatusBadRequest, "id and name_si are required")
 	}
-	return s.repo.CreateSubject(ctx, id, nameSi)
+	if err := s.repo.CreateSubject(ctx, id, nameSi); err != nil {
+		return err
+	}
+	s.invalidateSubjectSummary(ctx)
+	return nil
 }
 
 func (s *AdminService) DeleteSubject(ctx context.Context, id string) error {
 	if err := s.repo.DeleteSubject(ctx, id); err != nil {
+		if err == repository.ErrSubjectInUse {
+			return httputil.E(http.StatusConflict, "Subject still has papers or questions — move or delete them first")
+		}
 		return httputil.E(http.StatusNotFound, "Subject not found")
 	}
+	s.invalidateSubjectSummary(ctx)
 	return nil
 }
 
@@ -655,12 +845,17 @@ func (s *AdminService) uniqueSlug(ctx context.Context, text string) (string, err
 // ── validation ────────────────────────────────────────────────────────────────
 
 func validatePoolQuestion(in PoolQuestionInput) error {
-	if in.QuestionText == "" || in.OptionA == "" || in.OptionB == "" || in.OptionC == "" || in.OptionD == "" {
-		return httputil.E(http.StatusBadRequest, "question_text, option_a/b/c/d are required")
+	// Every question must belong to a subject (DB enforces NOT NULL too).
+	if in.SubjectID == nil || *in.SubjectID == "" {
+		return httputil.E(http.StatusBadRequest, "subject_id is required")
+	}
+	// Every MCQ must have exactly 5 non-empty options.
+	if in.QuestionText == "" || in.OptionA == "" || in.OptionB == "" || in.OptionC == "" || in.OptionD == "" || in.OptionE == "" {
+		return httputil.E(http.StatusBadRequest, "question_text and all 5 options (a–e) are required")
 	}
 	co := strings.ToUpper(in.CorrectOption)
-	if co != "A" && co != "B" && co != "C" && co != "D" {
-		return httputil.E(http.StatusBadRequest, "correct_option must be A, B, C, or D")
+	if co != "A" && co != "B" && co != "C" && co != "D" && co != "E" {
+		return httputil.E(http.StatusBadRequest, "correct_option must be A, B, C, D, or E")
 	}
 	return nil
 }

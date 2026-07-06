@@ -6,6 +6,12 @@ import type {
   SubmitAnswersRequest,
   SubmitResult,
   MarkingSchemeResponse,
+  PracticePaperCard,
+  PracticeOverviewResponse,
+  PracticeStartResponse,
+  PracticeSubmitResult,
+  PracticeHistoryPage,
+  PaperPdfSlot,
 } from '@/types';
 
 export interface UserStats {
@@ -70,5 +76,39 @@ export const papersService = {
    */
   async getUserStats(): Promise<UserStats> {
     return apiClient.get<UserStats>('/users/me/stats');
+  },
+
+  // ─── Past-paper practice (multi-attempt, elapsed) ──────────────────────────
+
+  /** List published past papers in a subject with the student's practice stats. */
+  async getPracticePapers(subject: string, grade?: string): Promise<PracticePaperCard[]> {
+    const params = new URLSearchParams({ subject });
+    if (grade) params.set('grade', grade);
+    return apiClient.get<PracticePaperCard[]>(`/papers/practice-list?${params.toString()}`);
+  },
+
+  /** Landing data for one past paper (parts present, attempt stats, PDFs). */
+  async getPracticeOverview(paperId: string): Promise<PracticeOverviewResponse> {
+    return apiClient.get<PracticeOverviewResponse>(`/papers/${paperId}/practice/overview`);
+  },
+
+  /** Start a NEW practice attempt — returns questions (no answers) + attempt id. */
+  async startPractice(paperId: string): Promise<PracticeStartResponse> {
+    return apiClient.post<PracticeStartResponse>(`/papers/${paperId}/practice/start`, {});
+  },
+
+  /** Submit a practice attempt; server grades + times it and returns a review. */
+  async submitPractice(paperId: string, attemptId: string, data: SubmitAnswersRequest): Promise<PracticeSubmitResult> {
+    return apiClient.post<PracticeSubmitResult>(`/papers/${paperId}/practice/${attemptId}/submit`, data);
+  },
+
+  /** Paginated attempt history for a past paper. */
+  async getPracticeAttempts(paperId: string, page = 1, limit = 20): Promise<PracticeHistoryPage> {
+    return apiClient.get<PracticeHistoryPage>(`/papers/${paperId}/practice/attempts?page=${page}&limit=${limit}`);
+  },
+
+  /** Browser URL for a past paper's reference PDF (same-origin, gated). */
+  paperPdfUrl(paperId: string, slot: PaperPdfSlot): string {
+    return `/api/papers/${paperId}/pdf/${slot}`;
   },
 };

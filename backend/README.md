@@ -86,18 +86,14 @@ make run
 | POST | `/` | Admin | Create paper + questions |
 | PATCH | `/{id}/marking-scheme` | Admin | Release marking scheme |
 
-### Past Papers `/api/v1/past-papers`
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/` | Bearer | Subject→topic→year tree |
-| GET | `/{id}/questions` | Bearer | MCQ questions (answers if MS uploaded) |
-| GET | `/{id}/essay-pdf` | Bearer | Stream essay PDF |
-| GET | `/{id}/marking-scheme-pdf` | Bearer | Stream marking scheme PDF |
-| POST | `/` | Admin | Create past-paper record |
-| POST | `/{id}/essay-pdf` | Admin | Upload essay PDF |
-| POST | `/{id}/marking-scheme-pdf` | Admin | Upload marking scheme PDF |
-| POST | `/{id}/questions` | Admin | Bulk upload MCQ questions |
-| POST | `/{id}/answer-key` | Admin | Upload MCQ answer key |
+### Past Papers
+Past papers are `papers` with `type='pastpaper'` — they run through the exam
+engine (see Papers) with multiple attempts + elapsed timing. Student practice:
+`GET /papers/practice-list`, `GET /papers/{id}/practice/overview`,
+`POST /papers/{id}/practice/start`, `POST /papers/{id}/practice/{attemptId}/submit`,
+`GET /papers/{id}/practice/attempts`, `GET /papers/{id}/pdf/{slot}` (structured /
+essay / answers). Admin manages them via the Papers admin routes + `POST|DELETE
+/admin/papers/{id}/pdf/{slot}`. (The old `/api/v1/past-papers` archive was removed.)
 
 ### Forum `/api/v1/forum`
 | Method | Path | Auth | Description |

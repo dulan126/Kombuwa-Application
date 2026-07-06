@@ -34,9 +34,18 @@ func (h *PapersHandler) Routes() chi.Router {
 	r.Use(h.authMW.Authenticate)
 
 	r.Get("/", h.listPapers)
+	r.Get("/practice-list", h.listPracticePapers) // published past papers in a subject
 	r.Get("/{id}/overview", h.examOverview)
 	r.Post("/{id}/start", h.startExam)
 	r.Post("/{id}/submit", h.submit)
+	r.Get("/{id}/questions/{qid}/media/{slot}", h.serveQuestionMedia)
+
+	// Past-paper practice (multi-attempt, elapsed) + reference PDFs
+	r.Get("/{id}/practice/overview", h.practiceOverview)
+	r.Post("/{id}/practice/start", h.practiceStart)
+	r.Post("/{id}/practice/{attemptId}/submit", h.practiceSubmit)
+	r.Get("/{id}/practice/attempts", h.practiceHistory)
+	r.Get("/{id}/pdf/{slot}", h.servePaperPDF)
 	r.Get("/{id}/marking-scheme", h.markingScheme)
 	r.Get("/{id}/rankings", h.rankings)
 

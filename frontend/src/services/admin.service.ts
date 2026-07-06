@@ -26,6 +26,8 @@ export interface AdminPaper {
   created_at: string;
   subject_name: string;
   attempt_count: number;
+  /** Past-paper reference PDFs (slot → gated URL). */
+  pdfs?: Partial<Record<PaperPdfSlot, string>>;
 }
 
 export interface Topic {
@@ -43,14 +45,22 @@ export interface PoolQuestion {
   option_b: string;
   option_c: string;
   option_d: string;
+  option_e: string;
   correct_option: string;
   explanation?: string;
   image_url?: string;
+  /** slot ("question"/"a"/"b"/"c"/"d"/"e") → gated image URL. Sparse. */
+  images?: Partial<Record<MediaSlot, string>>;
+  /** true when authored from the past-paper path, false when pool-authored. */
+  is_pp: boolean;
   subject_id?: string;
   topic_id?: number | null;
   created_by?: string;
   created_at?: string;
 }
+
+/** Image slots a question can carry: the stem plus each option. */
+export type MediaSlot = 'question' | 'a' | 'b' | 'c' | 'd' | 'e';
 
 export interface PaperQuestion extends PoolQuestion {
   sort_order: number;
@@ -99,6 +109,7 @@ export interface PoolQuestionInput {
   option_b: string;
   option_c: string;
   option_d: string;
+  option_e: string;
   correct_option: string;
   explanation?: string;
   image_url?: string;
@@ -144,6 +155,22 @@ export interface AdminUsersPage {
   total: number;
 }
 
+/** Per-subject content counts for the admin landing cards. */
+export interface SubjectSummary {
+  id: string;
+  name_si: string;
+  daily_count: number;
+  daily_published: number;
+  srp_count: number;
+  srp_published: number;
+  pastpaper_count: number;
+  pastpaper_published: number;
+  question_count: number;
+}
+
+/** Past-paper reference-PDF slots (question papers + a combined answers PDF). */
+export type PaperPdfSlot = 'structured' | 'essay' | 'answers';
+
 // ─── Admin Service ────────────────────────────────────────────────────────────
 
 export const adminService = {
@@ -152,10 +179,17 @@ export const adminService = {
   },
 
   // Papers
-  async listPapers(params?: { page?: number; limit?: number }): Promise<AdminPapersPage> {
+  async listPapers(params?: {
+    page?: number;
+    limit?: number;
+    subject_id?: string;
+    type?: string;
+  }): Promise<AdminPapersPage> {
     const qs = new URLSearchParams();
     if (params?.page) qs.set('page', String(params.page));
     if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.subject_id) qs.set('subject_id', params.subject_id);
+    if (params?.type) qs.set('type', params.type);
     const q = qs.toString();
     const raw = await apiClient.get<AdminPaper[] | AdminPapersPage>(`/admin/papers${q ? '?' + q : ''}`);
     if (Array.isArray(raw)) return { papers: raw, total: raw.length };
@@ -227,6 +261,30 @@ export const adminService = {
     await apiClient.delete(`/admin/questions/${id}`);
   },
 
+  // Question / answer images (multipart). Returns the question's updated image map.
+  async uploadQuestionMedia(id: number, slot: MediaSlot, file: File): Promise<{ images: Partial<Record<MediaSlot, string>> }> {
+    const fd = new FormData();
+    fd.append('image', file);
+    return apiClient.post<{ images: Partial<Record<MediaSlot, string>> }>(
+      `/admin/questions/${id}/media/${slot}`, fd, true,
+    );
+  },
+
+  async deleteQuestionMedia(id: number, slot: MediaSlot): Promise<{ images: Partial<Record<MediaSlot, string>> }> {
+    return apiClient.delete<{ images: Partial<Record<MediaSlot, string>> }>(`/admin/questions/${id}/media/${slot}`);
+  },
+
+  // Past-paper reference PDFs (multipart). Returns the paper's updated PDF map.
+  async uploadPaperPdf(id: string, slot: PaperPdfSlot, file: File): Promise<{ pdfs: Partial<Record<PaperPdfSlot, string>> }> {
+    const fd = new FormData();
+    fd.append('pdf', file);
+    return apiClient.post<{ pdfs: Partial<Record<PaperPdfSlot, string>> }>(`/admin/papers/${id}/pdf/${slot}`, fd, true);
+  },
+
+  async deletePaperPdf(id: string, slot: PaperPdfSlot): Promise<{ pdfs: Partial<Record<PaperPdfSlot, string>> }> {
+    return apiClient.delete<{ pdfs: Partial<Record<PaperPdfSlot, string>> }>(`/admin/papers/${id}/pdf/${slot}`);
+  },
+
   // Users
   async listUsers(params?: { stream?: string; grade?: string; page?: number; limit?: number }): Promise<AdminUsersPage> {
     const qs = new URLSearchParams();
@@ -287,6 +345,11 @@ export const adminService = {
   },
 
   // Subjects
+  /** Per-subject card counts (backend Redis-cached, write-invalidated). */
+  async getSubjectSummary(): Promise<SubjectSummary[]> {
+    return apiClient.get<SubjectSummary[]>('/admin/subjects/summary');
+  },
+
   async listSubjects(): Promise<Subject[]> {
     return apiClient.get<Subject[]>('/admin/subjects');
   },

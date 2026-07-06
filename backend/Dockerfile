@@ -19,8 +19,8 @@ WORKDIR /app
 
 COPY --from=builder /MIEDVANCE-api .
 
-# Create upload and log directories
-RUN mkdir -p uploads logs
+# Create upload, media, and log directories
+RUN mkdir -p uploads media logs
 
 EXPOSE 3000
 

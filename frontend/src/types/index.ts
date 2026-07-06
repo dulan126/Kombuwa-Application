@@ -4,7 +4,6 @@ export * from './auth';
 export * from './paper';
 export * from './forum';
 export * from './ranking';
-export * from './past-paper';
 
 // ─── Common Types ────────────────────────────────────────────────────────────
 

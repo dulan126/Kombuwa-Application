@@ -68,7 +68,7 @@ func (r *PapersRepo) ListPapers(ctx context.Context, userID uuid.UUID, f PaperLi
 	}
 
 	q := fmt.Sprintf(`
-		SELECT p.id, p.type, p.subject_id, p.grade, p.title,
+		SELECT p.id, p.type, p.subject_id, COALESCE(p.grade::text,''), p.title,
 		       p.question_count, p.time_seconds,
 		       p.available_from, p.available_until,
 		       p.ms_available, p.ms_available_at,
@@ -134,7 +134,7 @@ type PaperRow struct {
 // GetPaper returns a published paper by ID (joins subject name).
 func (r *PapersRepo) GetPaper(ctx context.Context, paperID uuid.UUID) (*PaperRow, error) {
 	const q = `SELECT p.id, p.type, p.subject_id, s.name_si,
-	                  p.grade, p.title, p.time_seconds, p.question_count,
+	                  COALESCE(p.grade::text,''), p.title, p.time_seconds, p.question_count,
 	                  p.available_from, p.available_until, p.ms_available, p.is_published
 	           FROM papers p
 	           JOIN subjects s ON s.id = p.subject_id
@@ -160,11 +160,50 @@ func (r *PapersRepo) GetPaper(ctx context.Context, paperID uuid.UUID) (*PaperRow
 	return &p, nil
 }
 
+// QuestionInPaper reports whether the question is attached to the paper.
+func (r *PapersRepo) QuestionInPaper(ctx context.Context, paperID uuid.UUID, questionID int) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS(
+		   SELECT 1 FROM paper_questions
+		   WHERE paper_id = $1 AND question_id = $2
+		 )`,
+		paperID, questionID,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("question in paper: %w", err)
+	}
+	return exists, nil
+}
+
+// PaperExistsOnDay reports whether a paper of the given type already exists for
+// the subject on the same SLST (Asia/Colombo) calendar day as availableFrom.
+// Used to enforce "one paper per type, per subject, per day". excludeID lets an
+// update skip its own row — pass uuid.Nil for creates.
+func (r *PapersRepo) PaperExistsOnDay(ctx context.Context, subjectID string, paperType model.PaperType, availableFrom time.Time, excludeID uuid.UUID) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS(
+		   SELECT 1 FROM papers
+		   WHERE subject_id = $1
+		     AND type = $2::paper_type
+		     AND (available_from AT TIME ZONE 'Asia/Colombo')::date
+		         = ($3::timestamptz AT TIME ZONE 'Asia/Colombo')::date
+		     AND id <> $4
+		 )`,
+		subjectID, string(paperType), availableFrom, excludeID,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check paper on day: %w", err)
+	}
+	return exists, nil
+}
+
 // GetQuestionsNoAnswers returns questions for a paper without correct_option.
 // sort_order is sourced from the paper_questions join table.
 func (r *PapersRepo) GetQuestionsNoAnswers(ctx context.Context, paperID uuid.UUID) ([]model.Question, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT q.id, pq.sort_order, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.image_url
+		`SELECT q.id, pq.sort_order, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e, q.image_url
 		 FROM paper_questions pq
 		 JOIN questions q ON q.id = pq.question_id
 		 WHERE pq.paper_id = $1
@@ -180,7 +219,7 @@ func (r *PapersRepo) GetQuestionsNoAnswers(ctx context.Context, paperID uuid.UUI
 	for rows.Next() {
 		var q model.Question
 		if err := rows.Scan(&q.ID, &q.SortOrder, &q.QuestionText,
-			&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD, &q.ImageURL); err != nil {
+			&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD, &q.OptionE, &q.ImageURL); err != nil {
 			return nil, fmt.Errorf("scan question: %w", err)
 		}
 		qs = append(qs, q)
@@ -192,7 +231,7 @@ func (r *PapersRepo) GetQuestionsNoAnswers(ctx context.Context, paperID uuid.UUI
 // sort_order is sourced from the paper_questions join table.
 func (r *PapersRepo) GetQuestionsWithAnswers(ctx context.Context, paperID uuid.UUID) ([]model.QuestionWithAnswer, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT q.id, pq.sort_order, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+		`SELECT q.id, pq.sort_order, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e,
 		        q.correct_option, q.explanation, q.image_url
 		 FROM paper_questions pq
 		 JOIN questions q ON q.id = pq.question_id
@@ -209,7 +248,7 @@ func (r *PapersRepo) GetQuestionsWithAnswers(ctx context.Context, paperID uuid.U
 	for rows.Next() {
 		var q model.QuestionWithAnswer
 		if err := rows.Scan(&q.ID, &q.SortOrder, &q.QuestionText,
-			&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
+			&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD, &q.OptionE,
 			&q.CorrectOption, &q.Explanation, &q.ImageURL); err != nil {
 			return nil, fmt.Errorf("scan question: %w", err)
 		}
@@ -498,7 +537,7 @@ func (r *PapersRepo) CreatePaper(ctx context.Context, p CreatePaperParams, qs []
 		err := tx.QueryRow(ctx,
 			`INSERT INTO papers (type, subject_id, grade, title, question_count, time_seconds,
 			                     available_from, available_until, is_published, created_by)
-			 VALUES ($1::paper_type,$2,$3::grade_enum,$4,$5,$6,$7,$8,FALSE,$9) RETURNING id`,
+			 VALUES ($1::paper_type,$2,NULLIF($3,'')::grade_enum,$4,$5,$6,$7,$8,FALSE,$9) RETURNING id`,
 			string(p.Type), p.SubjectID, string(p.Grade), p.Title,
 			p.QuestionCount, p.TimeSeconds, p.AvailableFrom, p.AvailableUntil, p.CreatedBy,
 		).Scan(&idStr)

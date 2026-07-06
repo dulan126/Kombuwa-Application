@@ -16,6 +16,7 @@
         condition: service_healthy
     volumes:
       - uploads:/app/uploads
+      - media:/app/media
       - logs:/app/logs
     develop:
       watch:
@@ -66,4 +67,5 @@ volumes:
   pgdata:
   redisdata:
   uploads:
+  media:
   logs:

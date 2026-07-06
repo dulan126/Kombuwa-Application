@@ -1,4 +1,4 @@
-﻿package repository
+package repository
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/miedvance/api/internal/model"
@@ -26,13 +27,13 @@ func NewAdminRepo(pool *pgxpool.Pool) *AdminRepo { return &AdminRepo{pool: pool}
 
 // Stats holds the admin dashboard aggregate counts.
 type Stats struct {
-	TotalStudents    int64            `json:"totalStudents"`
-	TotalPapers      int64            `json:"totalPapers"`
-	TotalAttempts    int64            `json:"totalAttempts"`
-	TotalThreads     int64            `json:"totalThreads"`
-	DAU              int64            `json:"dau"`
-	WAU              int64            `json:"wau"`
-	TopForumSubjects []SubjectCount   `json:"topForumSubjects"`
+	TotalStudents    int64          `json:"totalStudents"`
+	TotalPapers      int64          `json:"totalPapers"`
+	TotalAttempts    int64          `json:"totalAttempts"`
+	TotalThreads     int64          `json:"totalThreads"`
+	DAU              int64          `json:"dau"`
+	WAU              int64          `json:"wau"`
+	TopForumSubjects []SubjectCount `json:"topForumSubjects"`
 }
 
 // SubjectCount is one row from the top-forum-subjects aggregation.
@@ -85,12 +86,21 @@ func (r *AdminRepo) GetStats(ctx context.Context) (*Stats, error) {
 // AdminPaperRow is the richer paper row shown to admins (includes attempt count).
 type AdminPaperRow struct {
 	model.Paper
-	SubjectName  string `json:"subject_name"`
-	AttemptCount int64  `json:"attempt_count"`
+	SubjectName  string            `json:"subject_name"`
+	AttemptCount int64             `json:"attempt_count"`
+	Pdfs         map[string]string `json:"pdfs,omitempty"` // past-paper reference PDFs (slot → URL)
+}
+
+// AdminPaperFilter carries optional scoping filters for the admin paper list.
+// Empty fields are ignored; set fields compose with pagination.
+type AdminPaperFilter struct {
+	SubjectID string
+	Type      string
 }
 
 // ListPapers returns paginated papers (published or not) with attempt counts and total count.
-func (r *AdminRepo) ListPapers(ctx context.Context, page, limit int) ([]AdminPaperRow, int, error) {
+// The filter's WHERE clause is shared by the count and list queries so totals stay in sync.
+func (r *AdminRepo) ListPapers(ctx context.Context, f AdminPaperFilter, page, limit int) ([]AdminPaperRow, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -99,15 +109,31 @@ func (r *AdminRepo) ListPapers(ctx context.Context, page, limit int) ([]AdminPap
 	}
 	offset := (page - 1) * limit
 
+	var clauses []string
+	var params []any
+	if f.SubjectID != "" {
+		params = append(params, f.SubjectID)
+		clauses = append(clauses, fmt.Sprintf("p.subject_id = $%d", len(params)))
+	}
+	if f.Type != "" {
+		params = append(params, f.Type)
+		clauses = append(clauses, fmt.Sprintf("p.type = $%d::paper_type", len(params)))
+	}
+	where := ""
+	if len(clauses) > 0 {
+		where = "WHERE " + strings.Join(clauses, " AND ")
+	}
+
 	var total int
 	if err := r.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM papers`,
+		fmt.Sprintf(`SELECT COUNT(*) FROM papers p %s`, where), params...,
 	).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count admin papers: %w", err)
 	}
 
+	listParams := append(params, limit, offset)
 	rows, err := r.pool.Query(ctx,
-		`SELECT p.id, p.type, p.subject_id, p.grade, p.title,
+		fmt.Sprintf(`SELECT p.id, p.type, p.subject_id, COALESCE(p.grade::text,''), p.title,
 		        p.question_count, p.is_published, p.ms_available,
 		        p.available_from, p.available_until, p.created_at,
 		        s.name_si AS subject_name,
@@ -115,10 +141,11 @@ func (r *AdminRepo) ListPapers(ctx context.Context, page, limit int) ([]AdminPap
 		 FROM papers p
 		 JOIN subjects s ON s.id = p.subject_id
 		 LEFT JOIN attempts a ON a.paper_id = p.id AND a.is_completed = TRUE
+		 %s
 		 GROUP BY p.id, s.name_si
 		 ORDER BY p.created_at DESC
-		 LIMIT $1 OFFSET $2`,
-		limit, offset,
+		 LIMIT $%d OFFSET $%d`, where, len(params)+1, len(params)+2),
+		listParams...,
 	)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list admin papers: %w", err)
@@ -152,7 +179,7 @@ func (r *AdminRepo) GetPaper(ctx context.Context, paperID uuid.UUID) (*AdminPape
 	var row AdminPaperRow
 	var idStr, paperType, grade, subjectID string
 	err := r.pool.QueryRow(ctx,
-		`SELECT p.id, p.type, p.subject_id, p.grade, p.title,
+		`SELECT p.id, p.type, p.subject_id, COALESCE(p.grade::text,''), p.title,
 		        p.question_count, p.is_published, p.ms_available,
 		        p.available_from, p.available_until, p.created_at,
 		        s.name_si AS subject_name,
@@ -207,16 +234,16 @@ type AdminUserFilter struct {
 
 // AdminUserRow is the user row shape for admin listing.
 type AdminUserRow struct {
-	ID        uuid.UUID  `json:"id"`
-	Name      string     `json:"name"`
-	Mobile    string     `json:"mobile"`
-	Stream    *string    `json:"stream,omitempty"`
-	Grade     *string    `json:"grade,omitempty"`
-	District  *string    `json:"district,omitempty"`
-	School    *string    `json:"school,omitempty"`
-	ExamYear  *int16     `json:"exam_year,omitempty"`
-	CreatedAt string     `json:"created_at"`
-	LastLogin *string    `json:"last_login,omitempty"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Mobile    string    `json:"mobile"`
+	Stream    *string   `json:"stream,omitempty"`
+	Grade     *string   `json:"grade,omitempty"`
+	District  *string   `json:"district,omitempty"`
+	School    *string   `json:"school,omitempty"`
+	ExamYear  *int16    `json:"exam_year,omitempty"`
+	CreatedAt string    `json:"created_at"`
+	LastLogin *string   `json:"last_login,omitempty"`
 }
 
 // ListUsers returns paginated student users with optional stream/grade filter, plus total count.
@@ -407,6 +434,65 @@ func (r *AdminRepo) ListSubjects(ctx context.Context) ([]SubjectRow, error) {
 	return out, nil
 }
 
+// SubjectSummaryRow carries per-subject content counts for the admin landing cards.
+type SubjectSummaryRow struct {
+	ID                 string `json:"id"`
+	NameSi             string `json:"name_si"`
+	DailyCount         int64  `json:"daily_count"`
+	DailyPublished     int64  `json:"daily_published"`
+	SRPCount           int64  `json:"srp_count"`
+	SRPPublished       int64  `json:"srp_published"`
+	PastPaperCount     int64  `json:"pastpaper_count"`
+	PastPaperPublished int64  `json:"pastpaper_published"`
+	QuestionCount      int64  `json:"question_count"`
+}
+
+// SubjectSummaries returns per-subject paper (split by type) and question counts
+// in a single grouped aggregate query — one round-trip, no per-subject queries.
+func (r *AdminRepo) SubjectSummaries(ctx context.Context) ([]SubjectSummaryRow, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT s.id, s.name_si,
+		       COALESCE(p.daily, 0), COALESCE(p.daily_pub, 0),
+		       COALESCE(p.srp, 0),   COALESCE(p.srp_pub, 0),
+		       COALESCE(p.past, 0),  COALESCE(p.past_pub, 0),
+		       COALESCE(q.cnt, 0)
+		FROM subjects s
+		LEFT JOIN (
+		  SELECT subject_id,
+		         COUNT(*) FILTER (WHERE type = 'daily')                      AS daily,
+		         COUNT(*) FILTER (WHERE type = 'daily'     AND is_published) AS daily_pub,
+		         COUNT(*) FILTER (WHERE type = 'srp')                        AS srp,
+		         COUNT(*) FILTER (WHERE type = 'srp'       AND is_published) AS srp_pub,
+		         COUNT(*) FILTER (WHERE type = 'pastpaper')                  AS past,
+		         COUNT(*) FILTER (WHERE type = 'pastpaper' AND is_published) AS past_pub
+		  FROM papers GROUP BY subject_id
+		) p ON p.subject_id = s.id
+		LEFT JOIN (
+		  SELECT subject_id, COUNT(*) AS cnt
+		  FROM questions GROUP BY subject_id
+		) q ON q.subject_id = s.id
+		ORDER BY s.name_si`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("subject summaries: %w", err)
+	}
+	defer rows.Close()
+
+	var out []SubjectSummaryRow
+	for rows.Next() {
+		var row SubjectSummaryRow
+		if err := rows.Scan(&row.ID, &row.NameSi,
+			&row.DailyCount, &row.DailyPublished,
+			&row.SRPCount, &row.SRPPublished,
+			&row.PastPaperCount, &row.PastPaperPublished,
+			&row.QuestionCount); err != nil {
+			return nil, fmt.Errorf("scan subject summary: %w", err)
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
 // CreateSubject inserts a new subject.
 func (r *AdminRepo) CreateSubject(ctx context.Context, id, nameSi string) error {
 	_, err := r.pool.Exec(ctx,
@@ -419,10 +505,19 @@ func (r *AdminRepo) CreateSubject(ctx context.Context, id, nameSi string) error 
 	return nil
 }
 
+// ErrSubjectInUse is returned when a subject still has papers or questions
+// referencing it (FK RESTRICT).
+var ErrSubjectInUse = fmt.Errorf("subject still has papers or questions")
+
 // DeleteSubject removes a subject and all its stream associations.
+// Returns ErrSubjectInUse if papers or questions still reference it.
 func (r *AdminRepo) DeleteSubject(ctx context.Context, id string) error {
 	tag, err := r.pool.Exec(ctx, `DELETE FROM subjects WHERE id = $1`, id)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" { // foreign_key_violation
+			return ErrSubjectInUse
+		}
 		return fmt.Errorf("delete subject: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
@@ -541,10 +636,10 @@ func (r *AdminRepo) UpdatePaper(ctx context.Context, paperID uuid.UUID, p Update
 	var paper model.Paper
 	var idStr, paperType, grade string
 	err := r.pool.QueryRow(ctx,
-		`UPDATE papers SET title=$2, subject_id=$3, grade=$4::grade_enum, time_seconds=$5,
+		`UPDATE papers SET title=$2, subject_id=$3, grade=NULLIF($4,'')::grade_enum, time_seconds=$5,
 		                   available_from=$6, available_until=$7, updated_at=NOW()
 		 WHERE id=$1
-		 RETURNING id, type, subject_id, grade, title, question_count, time_seconds,
+		 RETURNING id, type, subject_id, COALESCE(grade::text,''), title, question_count, time_seconds,
 		           available_from, available_until, ms_available, is_published, created_at`,
 		paperID, p.Title, p.SubjectID, p.Grade, p.TimeSeconds, p.AvailableFrom, p.AvailableUntil,
 	).Scan(

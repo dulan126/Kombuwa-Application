@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, FileText, Database, BookOpen, Users,
+  LayoutDashboard, FileText, Star, FileStack, Database, BookOpen, Users,
   LogOut, ChevronLeft, ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
@@ -19,11 +19,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',     Icon: LayoutDashboard, color: '#8b90f0', href: '/admin/dashboard' },
-  { label: 'Papers',        Icon: FileText,         color: '#4F7FE8', href: '/admin/papers'    },
-  { label: 'Question Pool', Icon: Database,         color: '#2EC4B6', href: '/admin/questions' },
-  { label: 'Subjects',      Icon: BookOpen,         color: '#FB923C', href: '/admin/subjects'  },
-  { label: 'Users',         Icon: Users,            color: '#A78BFA', href: '/admin/users'     },
+  { label: 'Dashboard',     Icon: LayoutDashboard, color: '#8b90f0', href: '/admin/dashboard'    },
+  { label: 'Daily MCQ',     Icon: FileText,         color: '#4F7FE8', href: '/admin/papers/daily' },
+  { label: 'SRP Papers',    Icon: Star,             color: '#F2B94A', href: '/admin/papers/srp'   },
+  { label: 'Past Papers',   Icon: FileStack,        color: '#10B981', href: '/admin/papers/pastpaper' },
+  { label: 'Question Pool', Icon: Database,         color: '#2EC4B6', href: '/admin/questions'    },
+  { label: 'Subjects',      Icon: BookOpen,         color: '#FB923C', href: '/admin/subjects'     },
+  { label: 'Users',         Icon: Users,            color: '#A78BFA', href: '/admin/users'        },
 ];
 
 const STORAGE_KEY = 'admin-sidebar-collapsed';

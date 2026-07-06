@@ -21,14 +21,16 @@ const lbTTL = 5 * time.Minute
 
 // PapersService implements all papers business logic.
 type PapersService struct {
-	repo *repository.PapersRepo
-	rdb  *redis.Client
-	log  *zap.Logger
+	repo     *repository.PapersRepo
+	practice *repository.PracticeRepo
+	rdb      *redis.Client
+	media    *MediaService
+	log      *zap.Logger
 }
 
 // NewPapersService creates a PapersService.
-func NewPapersService(repo *repository.PapersRepo, rdb *redis.Client, log *zap.Logger) *PapersService {
-	return &PapersService{repo: repo, rdb: rdb, log: log}
+func NewPapersService(repo *repository.PapersRepo, practice *repository.PracticeRepo, rdb *redis.Client, media *MediaService, log *zap.Logger) *PapersService {
+	return &PapersService{repo: repo, practice: practice, rdb: rdb, media: media, log: log}
 }
 
 // ── Paper listing ─────────────────────────────────────────────────────────────
@@ -239,6 +241,9 @@ func (s *PapersService) StartExam(ctx context.Context, paperID, userID uuid.UUID
 	if err != nil {
 		return nil, fmt.Errorf("get questions: %w", err)
 	}
+	if err := s.attachQuestionImages(ctx, paperID, questions); err != nil {
+		return nil, err
+	}
 
 	return &ExamStartResponse{
 		Paper:            summaryFromPaper(paper),
@@ -303,21 +308,12 @@ func (s *PapersService) Submit(ctx context.Context, paperID, userID uuid.UUID, i
 		return nil, httputil.E(http.StatusNotFound, "Paper not found")
 	}
 
-	// Server-side scoring
+	// Server-side scoring (shared with past-paper practice).
 	questions, err := s.repo.GetQuestionsWithAnswers(ctx, paperID)
 	if err != nil {
 		return nil, fmt.Errorf("get questions: %w", err)
 	}
-
-	score := 0
-	for _, q := range questions {
-		// Node uses answers[String(q.sort_order - 1)] — sort_order is 1-indexed, key is 0-indexed
-		key := fmt.Sprintf("%d", q.SortOrder-1)
-		student := strings.ToUpper(in.Answers[key])
-		if student == q.CorrectOption {
-			score++
-		}
-	}
+	score := scoreAnswers(questions, in.Answers)
 
 	// Server-authoritative elapsed time, clamped to the exam deadline so a late
 	// (e.g. throttled auto-submit) submission can't inflate the ranking tiebreaker.
@@ -357,6 +353,20 @@ func (s *PapersService) Submit(ctx context.Context, paperID, userID uuid.UUID, i
 		TimeTakenSecs: timeTaken,
 		Rank:          rank,
 	}, nil
+}
+
+// scoreAnswers grades submitted answers against the correct options. Shared by
+// Daily/SRP Submit and past-paper practice submit. The answer map is keyed by
+// 0-indexed position ("0","1",...) while sort_order is 1-indexed.
+func scoreAnswers(questions []model.QuestionWithAnswer, answers map[string]string) int {
+	score := 0
+	for _, q := range questions {
+		key := fmt.Sprintf("%d", q.SortOrder-1)
+		if strings.ToUpper(answers[key]) == q.CorrectOption {
+			score++
+		}
+	}
+	return score
 }
 
 // computeRankings recomputes national + district ranks for all attempts on a paper.
@@ -511,12 +521,28 @@ func (s *PapersService) GetMarkingScheme(ctx context.Context, paperID, userID uu
 		studentAnswers = attempt.Answers
 	}
 
+	// Gated image URLs, keyed by question id.
+	var images map[int]map[string]string
+	if s.media != nil && len(questions) > 0 {
+		ids := make([]int, len(questions))
+		for i := range questions {
+			ids[i] = int(questions[i].ID)
+		}
+		images, err = s.media.StudentImagesFor(ctx, paperID, ids)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	msQs := make([]MSQuestion, len(questions))
 	for i, q := range questions {
 		sa := studentAnswers[fmt.Sprintf("%d", i)]
 		var saPtr *string
 		if sa != "" {
 			saPtr = &sa
+		}
+		if m := images[int(q.ID)]; len(m) > 0 {
+			q.Images = m
 		}
 		msQs[i] = MSQuestion{QuestionWithAnswer: q, StudentAnswer: saPtr}
 	}
@@ -526,6 +552,37 @@ func (s *PapersService) GetMarkingScheme(ctx context.Context, paperID, userID uu
 		StudentScore: studentScore,
 		Total:        len(questions),
 	}, nil
+}
+
+// ServeQuestionMedia opens a question/option image for a student, applying the
+// exam access gate (delegates to the media service).
+func (s *PapersService) ServeQuestionMedia(ctx context.Context, userID uuid.UUID, role model.UserRole, paperID uuid.UUID, questionID int, slot string) (*Opened, error) {
+	if s.media == nil {
+		return nil, httputil.E(http.StatusNotFound, "Not found")
+	}
+	return s.media.ServeStudent(ctx, userID, role, paperID, questionID, slot)
+}
+
+// attachQuestionImages populates each question's Images map with gated,
+// paper-scoped URLs (no-op when no media service or no questions).
+func (s *PapersService) attachQuestionImages(ctx context.Context, paperID uuid.UUID, questions []model.Question) error {
+	if s.media == nil || len(questions) == 0 {
+		return nil
+	}
+	ids := make([]int, len(questions))
+	for i := range questions {
+		ids[i] = int(questions[i].ID)
+	}
+	images, err := s.media.StudentImagesFor(ctx, paperID, ids)
+	if err != nil {
+		return err
+	}
+	for i := range questions {
+		if m := images[int(questions[i].ID)]; len(m) > 0 {
+			questions[i].Images = m
+		}
+	}
+	return nil
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
@@ -585,6 +642,15 @@ func (s *PapersService) CreatePaper(ctx context.Context, createdBy uuid.UUID, in
 		return uuid.UUID{}, httputil.E(http.StatusBadRequest, "type must be 'daily' or 'srp'")
 	}
 
+	// One paper per type, per subject, per day.
+	exists, err := s.repo.PaperExistsOnDay(ctx, in.SubjectID, paperType, in.AvailableFrom, uuid.Nil)
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("check existing paper: %w", err)
+	}
+	if exists {
+		return uuid.UUID{}, httputil.E(http.StatusConflict, dayConflictMsg(paperType))
+	}
+
 	qs := make([]repository.QuestionInput, len(in.Questions))
 	for i, q := range in.Questions {
 		slug := q.Slug
@@ -604,7 +670,7 @@ func (s *PapersService) CreatePaper(ctx context.Context, createdBy uuid.UUID, in
 		}
 	}
 
-	return s.repo.CreatePaper(ctx, repository.CreatePaperParams{
+	id, err := s.repo.CreatePaper(ctx, repository.CreatePaperParams{
 		Type:           paperType,
 		SubjectID:      in.SubjectID,
 		Grade:          model.Grade(in.Grade),
@@ -615,6 +681,12 @@ func (s *PapersService) CreatePaper(ctx context.Context, createdBy uuid.UUID, in
 		AvailableUntil: in.AvailableUntil,
 		CreatedBy:      createdBy,
 	}, qs)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	// Creating a paper (and its inline questions) changes per-subject card counts.
+	_ = s.rdb.Del(ctx, subjectSummaryCacheKey).Err()
+	return id, nil
 }
 
 func (s *PapersService) EnableMarkingScheme(ctx context.Context, paperID uuid.UUID) error {

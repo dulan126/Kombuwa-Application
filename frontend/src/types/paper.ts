@@ -32,13 +32,16 @@ export interface Question {
   option_b: string;
   option_c: string;
   option_d: string;
+  option_e: string;
   /** Only available in marking scheme, never during exam */
   correct_option?: AnswerOption;
   explanation?: string;
   image_url?: string;
+  /** slot ("question"/"a"/"b"/"c"/"d"/"e") → gated image URL. Sparse. */
+  images?: Partial<Record<'question' | 'a' | 'b' | 'c' | 'd' | 'e', string>>;
 }
 
-export type AnswerOption = 'A' | 'B' | 'C' | 'D';
+export type AnswerOption = 'A' | 'B' | 'C' | 'D' | 'E';
 
 export interface ExamPaperResponse {
   paper: Pick<Paper, 'id' | 'type' | 'title' | 'subject_id' | 'subject_name' | 'grade' | 'time_seconds' | 'question_count' | 'available_until'>;
@@ -90,6 +93,68 @@ export interface MarkingSchemeResponse {
   questions: (Question & { studentAnswer: AnswerOption | null })[];
   studentScore: number | null;
   totalQuestions: number;
+}
+
+// ─── Past-paper practice (multi-attempt, elapsed timing) ─────────────────────
+
+export type PaperPdfSlot = 'structured' | 'essay' | 'answers';
+
+/** One past paper in the student subject list. */
+export interface PracticePaperCard {
+  id: string;
+  title: string;
+  subject_id: string;
+  subject_name: string;
+  grade: string;
+  question_count: number;
+  has_mcq: boolean;
+  has_structured_pdf: boolean;
+  has_essay_pdf: boolean;
+  has_answers_pdf: boolean;
+  attempt_count: number;
+  best_score?: number;
+}
+
+/** Pre-start landing for one past paper. */
+export interface PracticeOverviewResponse {
+  paper: ExamPaperSummary;
+  parts: { has_mcq: boolean; has_structured_pdf: boolean; has_essay_pdf: boolean; has_answers_pdf: boolean };
+  attempt_count: number;
+  best_score?: number;
+  pdfs?: Partial<Record<PaperPdfSlot, string>>;
+}
+
+/** Returned after starting a practice attempt (no answers). */
+export interface PracticeStartResponse {
+  paper: ExamPaperSummary;
+  questions: Question[];
+  attempt_id: string;
+  started_at: string;
+}
+
+/** Graded practice result with per-question review (answers revealed post-submit). */
+export interface PracticeSubmitResult {
+  attempt_id: string;
+  score: number;
+  total: number;
+  percentage: number;
+  timeTakenSecs: number;
+  review: (Question & { studentAnswer: AnswerOption | null })[];
+}
+
+export interface PracticeAttempt {
+  id: string;
+  score: number;
+  total_questions: number;
+  time_taken_secs: number | null;
+  submitted_at?: string;
+  started_at: string;
+  is_completed: boolean;
+}
+
+export interface PracticeHistoryPage {
+  attempts: PracticeAttempt[];
+  total: number;
 }
 
 // ─── Exam Engine State ───────────────────────────────────────────────────────

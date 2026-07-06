@@ -64,8 +64,8 @@ func (r *QuestionPoolRepo) ListPoolQuestions(ctx context.Context, f PoolFilter) 
 
 	params = append(params, f.Limit, offset)
 	dataQ := fmt.Sprintf(`
-		SELECT id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
-		       correct_option, explanation, image_url, created_by, created_at
+		SELECT id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d, option_e,
+		       correct_option, explanation, image_url, is_pp, created_by, created_at
 		FROM questions %s
 		ORDER BY created_at DESC
 		LIMIT $%d OFFSET $%d`,
@@ -84,8 +84,8 @@ func (r *QuestionPoolRepo) ListPoolQuestions(ctx context.Context, f PoolFilter) 
 		var createdByStr *string
 		if err := rows.Scan(
 			&q.ID, &q.Slug, &q.SubjectID, &q.TopicID, &q.QuestionText,
-			&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
-			&q.CorrectOption, &q.Explanation, &q.ImageURL,
+			&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD, &q.OptionE,
+			&q.CorrectOption, &q.Explanation, &q.ImageURL, &q.IsPp,
 			&createdByStr, &q.CreatedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan pool question: %w", err)
@@ -102,8 +102,8 @@ func (r *QuestionPoolRepo) ListPoolQuestions(ctx context.Context, f PoolFilter) 
 // GetPoolQuestion returns a single pool question by ID.
 func (r *QuestionPoolRepo) GetPoolQuestion(ctx context.Context, id int) (*model.PoolQuestion, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
-		        correct_option, explanation, image_url, created_by, created_at
+		`SELECT id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d, option_e,
+		        correct_option, explanation, image_url, is_pp, created_by, created_at
 		 FROM questions WHERE id = $1`,
 		id,
 	)
@@ -111,8 +111,8 @@ func (r *QuestionPoolRepo) GetPoolQuestion(ctx context.Context, id int) (*model.
 	var createdByStr *string
 	err := row.Scan(
 		&q.ID, &q.Slug, &q.SubjectID, &q.TopicID, &q.QuestionText,
-		&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
-		&q.CorrectOption, &q.Explanation, &q.ImageURL,
+		&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD, &q.OptionE,
+		&q.CorrectOption, &q.Explanation, &q.ImageURL, &q.IsPp,
 		&createdByStr, &q.CreatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -138,9 +138,11 @@ type CreatePoolQuestionParams struct {
 	OptionB       string
 	OptionC       string
 	OptionD       string
+	OptionE       string
 	CorrectOption string
 	Explanation   *string
 	ImageURL      *string
+	IsPp          bool
 	CreatedBy     uuid.UUID
 }
 
@@ -150,17 +152,17 @@ func (r *QuestionPoolRepo) CreatePoolQuestion(ctx context.Context, p CreatePoolQ
 	var createdByStr *string
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO questions
-		   (slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
-		    correct_option, explanation, image_url, created_by, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-		 RETURNING id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
-		           correct_option, explanation, image_url, created_by, created_at`,
-		p.Slug, p.SubjectID, p.TopicID, p.QuestionText, p.OptionA, p.OptionB, p.OptionC, p.OptionD,
-		p.CorrectOption, p.Explanation, p.ImageURL, p.CreatedBy,
+		   (slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d, option_e,
+		    correct_option, explanation, image_url, is_pp, created_by, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+		 RETURNING id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d, option_e,
+		           correct_option, explanation, image_url, is_pp, created_by, created_at`,
+		p.Slug, p.SubjectID, p.TopicID, p.QuestionText, p.OptionA, p.OptionB, p.OptionC, p.OptionD, p.OptionE,
+		p.CorrectOption, p.Explanation, p.ImageURL, p.IsPp, p.CreatedBy,
 	).Scan(
 		&q.ID, &q.Slug, &q.SubjectID, &q.TopicID, &q.QuestionText,
-		&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
-		&q.CorrectOption, &q.Explanation, &q.ImageURL,
+		&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD, &q.OptionE,
+		&q.CorrectOption, &q.Explanation, &q.ImageURL, &q.IsPp,
 		&createdByStr, &q.CreatedAt,
 	)
 	if err != nil {
@@ -176,7 +178,8 @@ func (r *QuestionPoolRepo) CreatePoolQuestion(ctx context.Context, p CreatePoolQ
 	return &q, nil
 }
 
-// UpdatePoolQuestionParams holds updatable fields. Slug is intentionally excluded (immutable).
+// UpdatePoolQuestionParams holds updatable fields. Slug is immutable; is_pp is
+// editable (admins can toggle the past-paper flag).
 type UpdatePoolQuestionParams struct {
 	SubjectID     *string
 	TopicID       *int32
@@ -185,9 +188,11 @@ type UpdatePoolQuestionParams struct {
 	OptionB       string
 	OptionC       string
 	OptionD       string
+	OptionE       string
 	CorrectOption string
 	Explanation   *string
 	ImageURL      *string
+	IsPp          bool
 }
 
 // UpdatePoolQuestion edits a pool question. The slug field is immutable and ignored.
@@ -197,16 +202,17 @@ func (r *QuestionPoolRepo) UpdatePoolQuestion(ctx context.Context, id int, p Upd
 	err := r.pool.QueryRow(ctx,
 		`UPDATE questions SET
 		   subject_id = $2, topic_id = $3, question_text = $4, option_a = $5, option_b = $6,
-		   option_c = $7, option_d = $8, correct_option = $9, explanation = $10, image_url = $11
+		   option_c = $7, option_d = $8, option_e = $9, correct_option = $10, explanation = $11, image_url = $12,
+		   is_pp = $13
 		 WHERE id = $1
-		 RETURNING id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d,
-		           correct_option, explanation, image_url, created_by, created_at`,
-		id, p.SubjectID, p.TopicID, p.QuestionText, p.OptionA, p.OptionB, p.OptionC, p.OptionD,
-		p.CorrectOption, p.Explanation, p.ImageURL,
+		 RETURNING id, slug, subject_id, topic_id, question_text, option_a, option_b, option_c, option_d, option_e,
+		           correct_option, explanation, image_url, is_pp, created_by, created_at`,
+		id, p.SubjectID, p.TopicID, p.QuestionText, p.OptionA, p.OptionB, p.OptionC, p.OptionD, p.OptionE,
+		p.CorrectOption, p.Explanation, p.ImageURL, p.IsPp,
 	).Scan(
 		&q.ID, &q.Slug, &q.SubjectID, &q.TopicID, &q.QuestionText,
-		&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
-		&q.CorrectOption, &q.Explanation, &q.ImageURL,
+		&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD, &q.OptionE,
+		&q.CorrectOption, &q.Explanation, &q.ImageURL, &q.IsPp,
 		&createdByStr, &q.CreatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -289,8 +295,8 @@ func (r *QuestionPoolRepo) DetachFromPaper(ctx context.Context, paperID uuid.UUI
 // ListPaperQuestions returns all questions attached to a paper ordered by sort_order.
 func (r *QuestionPoolRepo) ListPaperQuestions(ctx context.Context, paperID uuid.UUID) ([]model.PaperQuestion, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT q.id, q.slug, q.subject_id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
-		        q.correct_option, q.explanation, q.image_url, q.created_by, q.created_at, pq.sort_order
+		`SELECT q.id, q.slug, q.subject_id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e,
+		        q.correct_option, q.explanation, q.image_url, q.is_pp, q.created_by, q.created_at, pq.sort_order
 		 FROM paper_questions pq
 		 JOIN questions q ON q.id = pq.question_id
 		 WHERE pq.paper_id = $1
@@ -308,8 +314,8 @@ func (r *QuestionPoolRepo) ListPaperQuestions(ctx context.Context, paperID uuid.
 		var createdByStr *string
 		if err := rows.Scan(
 			&q.ID, &q.Slug, &q.SubjectID, &q.QuestionText,
-			&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD,
-			&q.CorrectOption, &q.Explanation, &q.ImageURL,
+			&q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD, &q.OptionE,
+			&q.CorrectOption, &q.Explanation, &q.ImageURL, &q.IsPp,
 			&createdByStr, &q.CreatedAt, &q.SortOrder,
 		); err != nil {
 			return nil, fmt.Errorf("scan paper question: %w", err)

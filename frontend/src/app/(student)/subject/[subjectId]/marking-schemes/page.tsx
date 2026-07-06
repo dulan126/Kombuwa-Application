@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { papersService } from '@/services/papers.service';
 import { Pagination } from '@/components/ui/Pagination';
+import { QuestionImage } from '@/components/exam/QuestionImage';
 import { cn } from '@/lib/utils';
 import type { Paper, Question, AnswerOption } from '@/types';
 
@@ -20,14 +21,20 @@ function QuestionReview({
       {questions.map((q, i) => {
         const ca = (q.correct_option || 'A') as AnswerOption;
         const ua = studentAnswers[i] ?? null;
-        const opts = [q.option_a, q.option_b, q.option_c, q.option_d] as string[];
+        const opts = [q.option_a, q.option_b, q.option_c, q.option_d, q.option_e] as string[];
         return (
           <div key={i} className="border border-border-dim rounded-[12px] p-4 bg-dark">
             <div className="text-[9px] text-text-muted mb-1">Question {i + 1}</div>
             <div className="text-[13px] text-text-primary leading-[1.75] mb-3">{q.question_text}</div>
+            {q.images?.question && (
+              <div className="mb-3">
+                <QuestionImage src={q.images.question} alt={`Question ${i + 1} image`} />
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               {opts.map((o, j) => {
-                const letter = 'ABCD'[j] as AnswerOption;
+                const letter = 'ABCDE'[j] as AnswerOption;
+                const optImg = q.images?.[('abcde'[j]) as 'a' | 'b' | 'c' | 'd' | 'e'];
                 const isCorrect = letter === ca;
                 const isWrong = ua && letter === ua && ua !== ca;
                 return (
@@ -52,7 +59,10 @@ function QuestionReview({
                     >
                       {letter}
                     </div>
-                    <span className="flex-1 text-text-primary">{o}</span>
+                    <span className="flex-1 flex flex-col gap-1 min-w-0">
+                      {o && <span className="text-text-primary">{o}</span>}
+                      {optImg && <QuestionImage src={optImg} alt={`Option ${letter} image`} className="max-h-32 max-w-full rounded-[6px] border border-border-dim object-contain" />}
+                    </span>
                     {isCorrect && <span className="text-[10px] text-success font-bold shrink-0">✓ Correct</span>}
                     {isWrong && <span className="text-[10px] text-danger shrink-0">✗ Your answer</span>}
                   </div>

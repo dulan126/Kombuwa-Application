@@ -33,8 +33,10 @@ type Config struct {
 	SMSApiKey   string
 	SMSSenderID string
 
-	UploadDir     string
-	MaxFileSizeMB int
+	UploadDir      string
+	MaxFileSizeMB  int
+	MediaDir       string // private dir for gated exam images (never on /uploads)
+	MaxImageSizeMB int
 
 	CORSOrigins []string
 
@@ -86,6 +88,8 @@ func Load() (*Config, error) {
 
 	c.UploadDir = getEnv("UPLOAD_DIR", "./uploads")
 	c.MaxFileSizeMB = parseInt("MAX_FILE_SIZE_MB", 10)
+	c.MediaDir = getEnv("MEDIA_DIR", "./media")
+	c.MaxImageSizeMB = parseInt("MAX_IMAGE_SIZE_MB", 5)
 
 	c.CORSOrigins = strings.Split(getEnv("CORS_ORIGIN", "http://localhost:8080"), ",")
 

@@ -12,14 +12,18 @@ import {
   type PoolQuestionInput,
   type Subject,
   type Topic,
+  type MediaSlot,
 } from '@/services/admin.service';
 import { isApiError } from '@/services/api-client';
 import { AdminDialog, type DialogState } from '@/components/ui/AdminDialog';
+import { ImageUpload, reconcileQuestionImages, type PendingImages } from '@/components/admin/ImageUpload';
+import { PdfUpload } from '@/components/admin/PdfUpload';
+import type { PaperPdfSlot } from '@/services/admin.service';
 
 // ── Question form (shared for create / edit) ──────────────────────────────────
 
 const EMPTY_Q: PoolQuestionInput = {
-  question_text: '', option_a: '', option_b: '', option_c: '', option_d: '',
+  question_text: '', option_a: '', option_b: '', option_c: '', option_d: '', option_e: '',
   correct_option: 'A', explanation: '', subject_id: '', slug: '',
 };
 
@@ -31,14 +35,22 @@ function QuestionForm({
   subjects,
 }: {
   initial: PoolQuestionInput;
-  onSave: (q: PoolQuestionInput) => void;
+  onSave: (q: PoolQuestionInput, pending: PendingImages) => void;
   onCancel: () => void;
   saving: boolean;
   subjects: Subject[];
 }) {
   const [q, setQ] = useState<PoolQuestionInput>(initial);
   const [availableTopics, setAvailableTopics] = useState<Topic[]>([]);
+  const [pending, setPending] = useState<PendingImages>({});
   const set = (k: keyof PoolQuestionInput, v: string) => setQ(prev => ({ ...prev, [k]: v }));
+  const setSlot = (slot: MediaSlot, next: File | null | undefined) =>
+    setPending(prev => {
+      const cp = { ...prev };
+      if (next === undefined) delete cp[slot];
+      else cp[slot] = next;
+      return cp;
+    });
 
   useEffect(() => {
     if (!q.subject_id) { setAvailableTopics([]); setQ(prev => ({ ...prev, topic_id: null })); return; }
@@ -54,30 +66,39 @@ function QuestionForm({
         value={q.question_text}
         onChange={e => set('question_text', e.target.value)}
       />
-      {(['a','b','c','d'] as const).map(opt => (
-        <div key={opt} className="flex items-center gap-2">
-          <label className="w-4 font-bold text-text-muted uppercase">{opt}</label>
-          <input
-            className="admin-input flex-1"
-            placeholder={`Option ${opt.toUpperCase()}`}
-            value={q[`option_${opt}` as keyof PoolQuestionInput] as string}
-            onChange={e => set(`option_${opt}` as keyof PoolQuestionInput, e.target.value)}
-          />
+      <ImageUpload
+        label="Question image (optional)"
+        pending={pending.question}
+        onChange={next => setSlot('question', next)}
+      />
+      {(['a','b','c','d','e'] as const).map(opt => (
+        <div key={opt} className="flex items-start gap-2">
+          <label className="w-4 font-bold text-text-muted uppercase mt-2">{opt}</label>
+          <div className="flex-1 flex flex-col gap-1">
+            <input
+              className="admin-input"
+              placeholder={`Option ${opt.toUpperCase()}`}
+              value={q[`option_${opt}` as keyof PoolQuestionInput] as string}
+              onChange={e => set(`option_${opt}` as keyof PoolQuestionInput, e.target.value)}
+            />
+            <ImageUpload pending={pending[opt]} onChange={next => setSlot(opt, next)} />
+          </div>
         </div>
       ))}
       <div className="flex items-center gap-3">
         <label className="text-text-muted text-[11.5px] font-semibold">Correct:</label>
         <select className="admin-input w-20" value={q.correct_option} onChange={e => set('correct_option', e.target.value)}>
-          {['A','B','C','D'].map(o => <option key={o}>{o}</option>)}
+          {['A','B','C','D','E'].map(o => <option key={o}>{o}</option>)}
         </select>
       </div>
       <input className="admin-input" placeholder="Explanation (optional)" value={q.explanation} onChange={e => set('explanation', e.target.value)} />
+      {/* Required — every question must belong to a subject (server enforces too) */}
       <select
         className="admin-input"
         value={q.subject_id ?? ''}
         onChange={e => { set('subject_id', e.target.value); setQ(prev => ({ ...prev, topic_id: null })); }}
       >
-        <option value="">— subject (optional) —</option>
+        <option value="" disabled>— select subject * —</option>
         {subjects.map(s => (
           <option key={s.id} value={s.id}>{s.name_si} ({s.id})</option>
         ))}
@@ -97,8 +118,8 @@ function QuestionForm({
       <input className="admin-input" placeholder="Slug (auto-generated if blank)" value={q.slug} onChange={e => set('slug', e.target.value)} />
       <div className="flex gap-2 pt-1">
         <button
-          onClick={() => onSave(q)}
-          disabled={saving}
+          onClick={() => onSave(q, pending)}
+          disabled={saving || !q.subject_id}
           className="px-4 py-1.5 rounded-sm bg-brand text-white text-[12px] font-semibold hover:bg-brand-dark transition-colors disabled:opacity-50 cursor-pointer border-none"
         >
           {saving ? 'Saving…' : 'Save'}
@@ -237,11 +258,18 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
     }
   }
 
-  async function handleCreateAndAttach(input: PoolQuestionInput) {
+  async function handleCreateAndAttach(input: PoolQuestionInput, pending: PendingImages) {
     setSavingNew(true);
     try {
       const pq = await adminService.attachQuestion(paperId, input);
-      setQuestions(prev => [...prev, pq]);
+      // Attach images now that the question id exists (orphan-free).
+      if (Object.keys(pending).length > 0) {
+        await reconcileQuestionImages(pq.id, pending);
+        const fresh = await adminService.listPaperQuestions(paperId);
+        setQuestions(fresh);
+      } else {
+        setQuestions(prev => [...prev, pq]);
+      }
       setAddMode(null);
     } catch (err) {
       setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to create question' });
@@ -278,6 +306,18 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
     } catch (err) {
       setDialog({ type: 'alert', title: 'Error', message: isApiError(err) ? err.message : 'Failed to update paper' });
     }
+  }
+
+  async function handlePdfUpload(slot: PaperPdfSlot, file: File) {
+    if (!paper) return;
+    const { pdfs } = await adminService.uploadPaperPdf(paper.id, slot, file);
+    setPaper(p => p ? { ...p, pdfs } : p);
+  }
+
+  async function handlePdfRemove(slot: PaperPdfSlot) {
+    if (!paper) return;
+    const { pdfs } = await adminService.deletePaperPdf(paper.id, slot);
+    setPaper(p => p ? { ...p, pdfs } : p);
   }
 
   if (loading) {
@@ -323,6 +363,37 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
         </button>
       </div>
 
+      {/* Reference PDFs — past papers only */}
+      {paper?.type === 'pastpaper' && (
+        <div className="bg-surface rounded-base border border-border-dim mb-4 p-4">
+          <div className="text-[13px] font-semibold text-text-primary mb-1">Reference PDFs</div>
+          <p className="text-[11.5px] text-text-muted mb-3">
+            Optional question-paper PDFs students can view. Question papers only — no answers.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <PdfUpload
+              label="Structured Questions"
+              currentUrl={paper.pdfs?.structured}
+              onUpload={(f) => handlePdfUpload('structured', f)}
+              onRemove={() => handlePdfRemove('structured')}
+            />
+            <PdfUpload
+              label="Essay Questions"
+              currentUrl={paper.pdfs?.essay}
+              onUpload={(f) => handlePdfUpload('essay', f)}
+              onRemove={() => handlePdfRemove('essay')}
+            />
+            <PdfUpload
+              label="Answers (structured + essay)"
+              hint="Openly viewable by students. MCQ answers stay protected."
+              currentUrl={paper.pdfs?.answers}
+              onUpload={(f) => handlePdfUpload('answers', f)}
+              onRemove={() => handlePdfRemove('answers')}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Question list */}
       <div className="bg-surface rounded-base border border-border-dim mb-4">
         <div className="px-4 py-3 border-b border-border-dim flex items-center justify-between">
@@ -347,7 +418,7 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
           <div className="p-4 border-b border-border-dim">
             <p className="text-[11.5px] text-text-muted mb-3">New question will be added to the pool and attached to this paper.</p>
             <QuestionForm
-              initial={EMPTY_Q}
+              initial={{ ...EMPTY_Q, subject_id: paper?.subject_id ?? '' }}
               saving={savingNew}
               onSave={handleCreateAndAttach}
               onCancel={() => setAddMode(null)}
