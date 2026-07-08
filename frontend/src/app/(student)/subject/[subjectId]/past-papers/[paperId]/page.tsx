@@ -15,9 +15,10 @@ import type {
   Question, AnswerOption, PracticeOverviewResponse, PracticeSubmitResult, PracticeAttempt,
 } from '@/types';
 
-const OPTIONS = ['A', 'B', 'C', 'D', 'E'] as const;
+const OPTIONS = ['1', '2', '3', '4', '5'] as const;
 type OptionKey = (typeof OPTIONS)[number];
-const OPTION_FIELDS: Record<OptionKey, keyof Question> = { A: 'option_a', B: 'option_b', C: 'option_c', D: 'option_d', E: 'option_e' };
+const OPTION_FIELDS: Record<OptionKey, keyof Question> = { '1': 'option_a', '2': 'option_b', '3': 'option_c', '4': 'option_d', '5': 'option_e' };
+const OPTION_SLOTS: Record<OptionKey, 'a' | 'b' | 'c' | 'd' | 'e'> = { '1': 'a', '2': 'b', '3': 'c', '4': 'd', '5': 'e' };
 
 function fmtDuration(secs: number): string {
   const s = Math.max(0, Math.floor(secs));
@@ -44,7 +45,7 @@ function ReviewList({ questions }: { questions: PracticeSubmitResult['review'] }
             {q.images?.question && <div className="mb-3"><QuestionImage src={q.images.question} alt={`Question ${i + 1} image`} /></div>}
             <div className="flex flex-col gap-1">
               {opts.map((o, j) => {
-                const letter = 'ABCDE'[j] as AnswerOption;
+                const letter = '12345'[j] as AnswerOption;
                 const optImg = q.images?.[('abcde'[j]) as 'a' | 'b' | 'c' | 'd' | 'e'];
                 const isCorrect = letter === ca;
                 const isWrong = ua && letter === ua && ua !== ca;
@@ -242,7 +243,7 @@ export default function PastPaperPracticePage() {
               <div className="flex flex-col gap-2.5">
                 {OPTIONS.map((opt) => {
                   const text = (q[OPTION_FIELDS[opt]] as string) ?? '';
-                  const optImg = q.images?.[opt.toLowerCase() as 'a' | 'b' | 'c' | 'd' | 'e'];
+                  const optImg = q.images?.[OPTION_SLOTS[opt]];
                   const isSelected = answers[current] === opt;
                   return (
                     <button key={opt} className={cn('answer-option text-left font-[inherit]', isSelected ? 'selected' : '')}

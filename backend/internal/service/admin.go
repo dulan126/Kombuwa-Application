@@ -387,7 +387,7 @@ func (s *AdminService) CreatePoolQuestion(ctx context.Context, createdBy uuid.UU
 		OptionC:       in.OptionC,
 		OptionD:       in.OptionD,
 		OptionE:       in.OptionE,
-		CorrectOption: strings.ToUpper(in.CorrectOption),
+		CorrectOption: strings.TrimSpace(in.CorrectOption),
 		Explanation:   in.Explanation,
 		ImageURL:      in.ImageURL,
 		IsPp:          in.IsPp,
@@ -416,7 +416,7 @@ func (s *AdminService) UpdatePoolQuestion(ctx context.Context, id int, in PoolQu
 		OptionC:       in.OptionC,
 		OptionD:       in.OptionD,
 		OptionE:       in.OptionE,
-		CorrectOption: strings.ToUpper(in.CorrectOption),
+		CorrectOption: strings.TrimSpace(in.CorrectOption),
 		Explanation:   in.Explanation,
 		ImageURL:      in.ImageURL,
 		IsPp:          in.IsPp,
@@ -849,9 +849,9 @@ func validatePoolQuestion(in PoolQuestionInput) error {
 	if in.QuestionText == "" || in.OptionA == "" || in.OptionB == "" || in.OptionC == "" || in.OptionD == "" || in.OptionE == "" {
 		return httputil.E(http.StatusBadRequest, "question_text and all 5 options (a–e) are required")
 	}
-	co := strings.ToUpper(in.CorrectOption)
-	if co != "A" && co != "B" && co != "C" && co != "D" && co != "E" {
-		return httputil.E(http.StatusBadRequest, "correct_option must be A, B, C, D, or E")
+	co := strings.TrimSpace(in.CorrectOption)
+	if co != "1" && co != "2" && co != "3" && co != "4" && co != "5" {
+		return httputil.E(http.StatusBadRequest, "correct_option must be 1, 2, 3, 4, or 5")
 	}
 	return nil
 }

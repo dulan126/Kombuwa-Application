@@ -89,7 +89,7 @@ func seedFixture(t *testing.T, pool *pgxpool.Pool) fixture {
 
 	err := pool.QueryRow(ctx,
 		`INSERT INTO questions (slug, subject_id, question_text, option_a, option_b, option_c, option_d, correct_option, created_by)
-		 VALUES ($1, $2, 'Q?', 'A', 'B', 'C', 'D', 'A', $3) RETURNING id`,
+		 VALUES ($1, $2, 'Q?', 'A', 'B', 'C', 'D', '1', $3) RETURNING id`,
 		fmt.Sprintf("zt-slug-%d", uniq), f.subjectID, f.creatorID,
 	).Scan(&f.questionID)
 	if err != nil {

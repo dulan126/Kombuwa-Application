@@ -17,10 +17,14 @@ const LEAVE_WARNING =
   'Leave the exam? Your attempt has already started and the timer keeps running while you are away.';
 
 const TOTAL_SECONDS: Record<string, number> = { daily: 1200, srp: 7200 };
-const OPTIONS = ['A', 'B', 'C', 'D', 'E'] as const;
+const OPTIONS = ['1', '2', '3', '4', '5'] as const;
 type OptionKey = (typeof OPTIONS)[number];
 const OPTION_FIELDS: Record<OptionKey, keyof Question> = {
-  A: 'option_a', B: 'option_b', C: 'option_c', D: 'option_d', E: 'option_e',
+  '1': 'option_a', '2': 'option_b', '3': 'option_c', '4': 'option_d', '5': 'option_e',
+};
+// Answer labels are numbers (1–5); image slots keep the internal a–e names.
+const OPTION_SLOTS: Record<OptionKey, 'a' | 'b' | 'c' | 'd' | 'e'> = {
+  '1': 'a', '2': 'b', '3': 'c', '4': 'd', '5': 'e',
 };
 
 // ── SLST countdown (for daily window) ────────────────────────────────────────
@@ -666,7 +670,7 @@ function ExamContent() {
             <div className="flex flex-col gap-2.5">
               {OPTIONS.map((opt) => {
                 const text = (q[OPTION_FIELDS[opt]] as string) ?? '';
-                const optImg = q.images?.[opt.toLowerCase() as 'a' | 'b' | 'c' | 'd' | 'e'];
+                const optImg = q.images?.[OPTION_SLOTS[opt]];
                 const isSelected = answers[current] === opt;
                 return (
                   <button

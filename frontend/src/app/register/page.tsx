@@ -196,11 +196,11 @@ export default function RegisterPage() {
     try {
       await verifyOTP(form.mobile.trim(), otpCode, 'register');
       showToast('Welcome to Miedvance! 🎉', 'success');
-      router.push('/dashboard');
+      // verifyOTP logs the user in; the redirect effect above navigates once auth
+      // state flips. Keep loading until then — no second push racing it.
     } catch (err: unknown) {
-      showToast('Incorrect code — ' + (isApiError(err) ? err.message : 'please try again'), 'error');
-    } finally {
       setIsLoading(false);
+      showToast('Incorrect code — ' + (isApiError(err) ? err.message : 'please try again'), 'error');
     }
   }
 

@@ -32,7 +32,7 @@ type ppFixture struct {
 }
 
 // seedPastPaper inserts a published pastpaper `papers` row with `n` pool
-// questions (correct options cycling A,B,C,D) linked via paper_questions.
+// questions (correct options cycling 1,2,3,4) linked via paper_questions.
 func seedPastPaper(t *testing.T, pool *pgxpool.Pool, n int) ppFixture {
 	t.Helper()
 	ctx := context.Background()
@@ -53,9 +53,9 @@ func seedPastPaper(t *testing.T, pool *pgxpool.Pool, n int) ppFixture {
 		 VALUES ('pastpaper'::paper_type, $1, '13'::grade_enum, 'PP', $2, 0, NOW(), NULL, true, $3)
 		 RETURNING id`, f.subjectID, n, f.creatorID)
 
-	letters := []string{"A", "B", "C", "D"}
+	answerLabels := []string{"1", "2", "3", "4"}
 	for i := 0; i < n; i++ {
-		correct := letters[i%4]
+		correct := answerLabels[i%4]
 		f.corrects = append(f.corrects, correct)
 		var qid int
 		if err := pool.QueryRow(ctx,

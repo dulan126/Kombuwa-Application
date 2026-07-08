@@ -19,8 +19,9 @@ func qwa(sortOrder int16, correct string) model.QuestionWithAnswer {
 }
 
 func TestScoreAnswers(t *testing.T) {
+	// Answer labels are numbers (1–5) matching real past-paper keys.
 	questions := []model.QuestionWithAnswer{
-		qwa(1, "A"), qwa(2, "B"), qwa(3, "C"), qwa(4, "D"),
+		qwa(1, "1"), qwa(2, "2"), qwa(3, "3"), qwa(4, "4"),
 	}
 	// answers are 0-indexed keys against 1-indexed sort_order.
 	cases := []struct {
@@ -28,10 +29,10 @@ func TestScoreAnswers(t *testing.T) {
 		answers map[string]string
 		want    int
 	}{
-		{"all correct", map[string]string{"0": "A", "1": "B", "2": "C", "3": "D"}, 4},
+		{"all correct", map[string]string{"0": "1", "1": "2", "2": "3", "3": "4"}, 4},
 		{"none", map[string]string{}, 0},
-		{"some + case-insensitive", map[string]string{"0": "a", "1": "B", "2": "X"}, 2},
-		{"wrong all", map[string]string{"0": "B", "1": "C", "2": "D", "3": "A"}, 0},
+		{"some correct", map[string]string{"0": "1", "1": "2", "2": "9"}, 2},
+		{"wrong all", map[string]string{"0": "2", "1": "3", "2": "4", "3": "1"}, 0},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -33,7 +33,7 @@ function QuestionReview({
             )}
             <div className="flex flex-col gap-1">
               {opts.map((o, j) => {
-                const letter = 'ABCDE'[j] as AnswerOption;
+                const letter = '12345'[j] as AnswerOption;
                 const optImg = q.images?.[('abcde'[j]) as 'a' | 'b' | 'c' | 'd' | 'e'];
                 const isCorrect = letter === ca;
                 const isWrong = ua && letter === ua && ua !== ca;

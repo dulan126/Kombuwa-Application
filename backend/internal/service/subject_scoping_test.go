@@ -35,7 +35,7 @@ func TestValidatePoolQuestion_SubjectRequired(t *testing.T) {
 		OptionC:       "5",
 		OptionD:       "6",
 		OptionE:       "7",
-		CorrectOption: "B",
+		CorrectOption: "2",
 	}
 
 	cases := []struct {
@@ -75,10 +75,10 @@ func TestValidatePoolQuestion_SubjectRequired(t *testing.T) {
 func TestValidatePoolQuestion_ExistingRulesUnchanged(t *testing.T) {
 	subj := "phy"
 	in := PoolQuestionInput{
-		SubjectID:     &subj,
-		QuestionText:  "", // missing text
-		OptionA:       "a", OptionB: "b", OptionC: "c", OptionD: "d", OptionE: "e",
-		CorrectOption: "A",
+		SubjectID:    &subj,
+		QuestionText: "", // missing text
+		OptionA:      "a", OptionB: "b", OptionC: "c", OptionD: "d", OptionE: "e",
+		CorrectOption: "1",
 	}
 	if err := validatePoolQuestion(in); err == nil {
 		t.Fatal("missing question_text should be rejected")
@@ -94,7 +94,7 @@ func TestValidatePoolQuestion_ExistingRulesUnchanged(t *testing.T) {
 	valid := PoolQuestionInput{
 		SubjectID: &subj, QuestionText: "q",
 		OptionA: "a", OptionB: "b", OptionC: "c", OptionD: "d", OptionE: "",
-		CorrectOption: "A",
+		CorrectOption: "1",
 	}
 	if err := validatePoolQuestion(valid); err == nil {
 		t.Fatal("missing option_e should be rejected (5 options required)")

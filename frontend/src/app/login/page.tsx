@@ -17,7 +17,10 @@ export default function LoginPage() {
   const [showPw, setShowPw]   = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect already-authenticated users (e.g. navigating back to /login)
+  // Single source of truth for the post-login redirect: it fires as soon as the
+  // auth state flips to logged-in — whether from this page's submit or from an
+  // already-authenticated visit. Using one effect (not an extra imperative
+  // push) avoids two navigations racing and leaving the button "stuck".
   React.useEffect(() => {
     if (!isLoggedIn || !user) return;
     const dest = (user.role === 'admin' || user.role === 'editor') ? '/admin/dashboard' : '/dashboard';
@@ -25,24 +28,23 @@ export default function LoginPage() {
   }, [isLoggedIn, user, router]);
 
   const handleLogin = async () => {
+    if (isLoading) return; // guard against double-submit
     const m = mobile.trim();
     if (!m || !password) { showToast('Please enter your mobile and password', 'warning'); return; }
 
     setIsLoading(true);
     try {
-      const loggedInUser = await login(m, password);
-      const dest = (loggedInUser.role === 'admin' || loggedInUser.role === 'editor')
-        ? '/admin/dashboard'
-        : '/dashboard';
-      router.push(dest);
+      await login(m, password);
+      // Leave the button in its loading state — the redirect effect above takes
+      // over the moment auth state updates, so we never flash an idle button
+      // on a successful login.
     } catch (err: unknown) {
+      setIsLoading(false);
       if (isApiError(err) && err.status === 401) {
         showToast('Incorrect mobile or password', 'error');
       } else {
         showToast('Could not sign in — ' + (isApiError(err) ? err.message : 'try again'), 'error');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 

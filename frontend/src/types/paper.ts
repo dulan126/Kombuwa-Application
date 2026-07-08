@@ -41,7 +41,7 @@ export interface Question {
   images?: Partial<Record<'question' | 'a' | 'b' | 'c' | 'd' | 'e', string>>;
 }
 
-export type AnswerOption = 'A' | 'B' | 'C' | 'D' | 'E';
+export type AnswerOption = '1' | '2' | '3' | '4' | '5';
 
 export interface ExamPaperResponse {
   paper: Pick<Paper, 'id' | 'type' | 'title' | 'subject_id' | 'subject_name' | 'grade' | 'time_seconds' | 'question_count' | 'available_until'>;

@@ -22,7 +22,7 @@ import { ImageUpload, reconcileQuestionImages, type PendingImages } from '@/comp
 
 const EMPTY_Q: PoolQuestionInput = {
   question_text: '', option_a: '', option_b: '', option_c: '', option_d: '', option_e: '',
-  correct_option: 'A', explanation: '', subject_id: '', slug: '', is_pp: false,
+  correct_option: '1', explanation: '', subject_id: '', slug: '', is_pp: false,
 };
 
 function QuestionModal({
@@ -86,13 +86,13 @@ function QuestionModal({
             pending={pending.question}
             onChange={next => setSlot('question', next)}
           />
-          {(['a','b','c','d','e'] as const).map(opt => (
+          {(['a','b','c','d','e'] as const).map((opt, idx) => (
             <div key={opt} className="flex items-start gap-2">
-              <label className="w-4 font-bold text-text-muted uppercase mt-2">{opt}</label>
+              <label className="w-4 font-bold text-text-muted mt-2">{idx + 1}</label>
               <div className="flex-1 flex flex-col gap-1">
                 <input
                   className="admin-input"
-                  placeholder={`Option ${opt.toUpperCase()}`}
+                  placeholder={`Option ${idx + 1}`}
                   value={q[`option_${opt}` as keyof PoolQuestionInput] as string}
                   onChange={e => set(`option_${opt}` as keyof PoolQuestionInput, e.target.value)}
                 />
@@ -107,7 +107,7 @@ function QuestionModal({
           <div className="flex items-center gap-3">
             <label className="text-text-muted text-[11.5px] font-semibold w-16">Correct:</label>
             <select className="admin-input w-20" value={q.correct_option} onChange={e => set('correct_option', e.target.value)}>
-              {['A','B','C','D','E'].map(o => <option key={o}>{o}</option>)}
+              {['1','2','3','4','5'].map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
           <input className="admin-input" placeholder="Explanation (optional)" value={q.explanation} onChange={e => set('explanation', e.target.value)} />
