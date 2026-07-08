@@ -24,7 +24,7 @@ import type { PaperPdfSlot } from '@/services/admin.service';
 
 const EMPTY_Q: PoolQuestionInput = {
   question_text: '', option_a: '', option_b: '', option_c: '', option_d: '', option_e: '',
-  correct_option: 'A', explanation: '', subject_id: '', slug: '',
+  correct_option: 'A', explanation: '', subject_id: '', slug: '', is_pp: false,
 };
 
 function QuestionForm({
@@ -116,6 +116,15 @@ function QuestionForm({
         </select>
       )}
       <input className="admin-input" placeholder="Slug (auto-generated if blank)" value={q.slug} onChange={e => set('slug', e.target.value)} />
+      <label className="flex items-center gap-2 cursor-pointer text-[12px] text-text-primary">
+        <input
+          type="checkbox"
+          checked={!!q.is_pp}
+          onChange={e => setQ(prev => ({ ...prev, is_pp: e.target.checked }))}
+          className="w-4 h-4 accent-brand cursor-pointer"
+        />
+        Past-paper question
+      </label>
       <div className="flex gap-2 pt-1">
         <button
           onClick={() => onSave(q, pending)}
@@ -418,7 +427,7 @@ export default function PaperBuilderPage({ params }: { params: Promise<{ id: str
           <div className="p-4 border-b border-border-dim">
             <p className="text-[11.5px] text-text-muted mb-3">New question will be added to the pool and attached to this paper.</p>
             <QuestionForm
-              initial={{ ...EMPTY_Q, subject_id: paper?.subject_id ?? '' }}
+              initial={{ ...EMPTY_Q, subject_id: paper?.subject_id ?? '', is_pp: paper?.type === 'pastpaper' }}
               saving={savingNew}
               onSave={handleCreateAndAttach}
               onCancel={() => setAddMode(null)}

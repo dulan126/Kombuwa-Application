@@ -22,7 +22,7 @@ import { ImageUpload, reconcileQuestionImages, type PendingImages } from '@/comp
 
 const EMPTY_Q: PoolQuestionInput = {
   question_text: '', option_a: '', option_b: '', option_c: '', option_d: '', option_e: '',
-  correct_option: 'A', explanation: '', subject_id: '', slug: '',
+  correct_option: 'A', explanation: '', subject_id: '', slug: '', is_pp: false,
 };
 
 function QuestionModal({
@@ -140,6 +140,15 @@ function QuestionModal({
             </select>
           )}
           <input className="admin-input" placeholder="Slug (auto-generated if blank)" value={q.slug} onChange={e => set('slug', e.target.value)} />
+          <label className="flex items-center gap-2 cursor-pointer text-[12.5px] text-text-primary">
+            <input
+              type="checkbox"
+              checked={!!q.is_pp}
+              onChange={e => setQ(prev => ({ ...prev, is_pp: e.target.checked }))}
+              className="w-4 h-4 accent-brand cursor-pointer"
+            />
+            Past-paper question <span className="text-text-muted text-[11px]">(tags it “PP” in the pool)</span>
+          </label>
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => onSave(q, pending)}

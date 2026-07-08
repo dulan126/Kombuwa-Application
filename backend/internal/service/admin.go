@@ -419,6 +419,7 @@ func (s *AdminService) UpdatePoolQuestion(ctx context.Context, id int, in PoolQu
 		CorrectOption: strings.ToUpper(in.CorrectOption),
 		Explanation:   in.Explanation,
 		ImageURL:      in.ImageURL,
+		IsPp:          in.IsPp,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("update pool question: %w", err)
@@ -500,15 +501,10 @@ func (s *AdminService) AttachQuestion(ctx context.Context, paperID uuid.UUID, cr
 			return nil, httputil.E(http.StatusNotFound, "Question not found in pool")
 		}
 	} else {
-		// Create inline — auto-slug from text, then attach. A question authored
-		// from the past-paper builder is flagged is_pp = true (origin-based).
-		// Use the admin repo's GetPaper, which returns drafts too (papers are
-		// still unpublished while being built).
-		inline := in.PoolQuestionInput
-		if paper, err := s.repo.GetPaper(ctx, paperID); err == nil && paper != nil {
-			inline.IsPp = paper.Type == model.PaperPastPaper
-		}
-		newQ, err := s.CreatePoolQuestion(ctx, createdBy, inline)
+		// Create inline — auto-slug from text, then attach. is_pp comes straight
+		// from the form: the past-paper builder pre-ticks it, but the admin can
+		// change it, so the submitted value wins (no server-side override).
+		newQ, err := s.CreatePoolQuestion(ctx, createdBy, in.PoolQuestionInput)
 		if err != nil {
 			return nil, err
 		}

@@ -116,6 +116,8 @@ export interface PoolQuestionInput {
   subject_id?: string;
   topic_id?: number | null;
   slug?: string;
+  /** Mark as a past-paper question. Defaults from origin, editable by the admin. */
+  is_pp?: boolean;
 }
 
 export interface PoolQuestionsResponse {
